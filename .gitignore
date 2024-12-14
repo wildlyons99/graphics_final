@@ -1,0 +1,115 @@
+# Executables
+final
+
+data
+
+# zip files
+*.zip
+
+# Compiled object files
+*.o
+*.obj
+
+# Compiled static libraries
+*.lib
+*.a
+
+# Compiled dynamic libraries
+*.dll
+*.so
+*.dylib
+
+# Executable files
+*.exe
+*.out
+*.app
+*.exe.recipe
+
+# Debug files
+*.dSYM/
+*.stackdump
+
+# Generated files
+*.gen.cpp
+*.generated.cpp
+
+# Code::Blocks
+*.depend
+*.layout
+*.layout.*
+*.cbp
+*.depend.*
+
+# Qt
+*.pro.user
+*.qmake.stash
+*.qmake.cache
+
+# Visual Studio
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+*.userosscache
+*.userprefs
+*.ncb
+*.opensdf
+*.sdf
+*.ipch
+*.pch
+*.local
+*.log
+*.obj
+*.tlog
+*.lastbuildstate
+*.idb
+*.dir
+*.pdb
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+*.ilk
+# Xcode
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+*.xccheckout
+*.xcuserstate
+*.xcscmblueprint
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Other
+*.DS_Store
+*.vscode/
+*.vs/
+*175a1/
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.brf
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.vrb
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.xdv
+
