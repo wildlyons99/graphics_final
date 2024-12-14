@@ -13,6 +13,7 @@ out vec3 vWorldPos;         // Pass world position to fragment shader
 void main() {
     // randomly move vertex up
     vec3 newPosition = aPosition;
+    newPosition.y -= 1;
     newPosition.y += 0.1 * sin(aPosition.x * 10.0) * sin(aPosition.z * 10.0);
     // Transform the vertex position to world space
     vec4 worldPos = myModelMatrix * vec4(newPosition, 1.0);

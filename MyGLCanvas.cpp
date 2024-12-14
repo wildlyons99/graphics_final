@@ -1,6 +1,7 @@
 #include "MyGLCanvas.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/noise.hpp>
 
 MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window(x, y, w, h, l) {
 	mode(FL_OPENGL3 | FL_RGB | FL_ALPHA | FL_DEPTH | FL_DOUBLE);
@@ -10,6 +11,8 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	rotVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	rotWorldVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	lightPos = eyePosition;
+    // test out noise
+    vec2 noise = glm::perlin(vec2(0.0f, 0.0f));
 
 	viewAngle = 60;
 	clipNear = 0.01f;
