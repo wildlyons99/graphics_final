@@ -2,10 +2,12 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <vector>
+
 MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window(x, y, w, h, l) {
 	mode(FL_OPENGL3 | FL_RGB | FL_ALPHA | FL_DEPTH | FL_DOUBLE);
 
-	eyePosition = glm::vec3(0.0f, 0.0f, 3.0f);
+	eyePosition = glm::vec3(0.0f, 0.0f, 5.0f);
 	lookatPoint = glm::vec3(0.0f, 0.0f, 0.0f);
 	rotVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	rotWorldVec = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -19,6 +21,7 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	textureBlend = 0.0f;
 
     orbitAngle = 0.0f;
+    NUM_PLANETS = 3; 
 
 	useDiffuse = false;
 
@@ -27,8 +30,13 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	myTextureManager = new TextureManager();
 	myShaderManager = new ShaderManager();
 	myObjectPLY = new ply("./data/sphere.ply");
-	mySecondObjectPLY = new ply("./data/sphere.ply");
 	myEnvironmentPLY = new ply("./data/sphere.ply");
+
+    for (int i = 0; i < NUM_PLANETS; i++) {
+        if (i == 1)
+            planets.push_back(new ply("./data/cow.ply"));
+        planets.push_back(new ply("./data/sphere.ply"));
+    }
 }
 
 MyGLCanvas::~MyGLCanvas() {
@@ -47,9 +55,21 @@ void MyGLCanvas::initShaders() {
 	myObjectPLY->buildArrays();
 	myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
 
-    myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
-	mySecondObjectPLY->buildArrays();
-	mySecondObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
+
+    // to use? 
+    // for (int i = 0; i < NUM_PLANETS; i++) {
+    //     std::string textureName = "planetMap" + std::to_string(i);
+    //     myTextureManager->loadTexture(textureName, "./data/planetfile" + std::to_string(i) + ".ppm");
+    // }
+
+    for (int i = 0; i < NUM_PLANETS; i++) {
+        myTextureManager->loadTexture("planetMap" + std::to_string(i), i == 1 ? "./data/boccioni.ppm" : "./data/sphere-map-nature.ppm"); // could do planet map i? 
+	    // myTextureManager->loadTexture("objectTexture", "./data/brick.ppm");
+
+        myShaderManager->addShaderProgram("planetShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
+        planets[i]->buildArrays();
+        planets[i]->bindVBO(myShaderManager->getShaderProgram("planetShaders")->programID);
+    }
 
 	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
 	myEnvironmentPLY->buildArrays();
@@ -88,7 +108,7 @@ void MyGLCanvas::draw() {
 }
 
 void MyGLCanvas::drawScene() {
-	
+	// defining the view 
 	glm::mat4 viewMatrix = glm::lookAt(eyePosition, lookatPoint, glm::vec3(0.0f, 1.0f, 0.0f));
 
 	viewMatrix = glm::rotate(viewMatrix, TO_RADIANS(rotWorldVec.x), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -116,8 +136,6 @@ void MyGLCanvas::drawScene() {
 		myShaderManager->getShaderProgram("objectShaders")->programID;
 	glUseProgram(objProgramId);
 
-	/*glm::vec3 tmp = viewMatrix * glm::vec4(eyePosition, 1.0f)*/;
-
 	glUniform1i(glGetUniformLocation(objProgramId, "environMap"), 0);
 	glUniform1i(glGetUniformLocation(objProgramId, "objectTexture"), 1);
 	glUniform1i(glGetUniformLocation(objProgramId, "useDiffuse"), useDiffuse ? 1 : 0);
@@ -132,33 +150,64 @@ void MyGLCanvas::drawScene() {
 	myObjectPLY->renderVBO(objProgramId);
 
 
-    // Draw the orbiting sphere
-    // Let's assume you have a variable orbitAngle (float) that you increment each frame.
-    orbitAngle += 0.01f;  // update function ? 
-
-    glm::mat4 orbitModelMatrix = glm::mat4(1.0f);
-
-    // Rotate around Y-axis so the sphere orbits horizontally
-    orbitModelMatrix = glm::rotate(orbitModelMatrix, orbitAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-
-    // Translate away from the center so it orbits at a radius of, say, 3 units
-    orbitModelMatrix = glm::translate(orbitModelMatrix, glm::vec3(3.0f, 0.0f, 0.0f));
-
-    // Scale it down for a smaller orbiting sphere
-    orbitModelMatrix = glm::scale(orbitModelMatrix, glm::vec3(0.25f));
-
-    // Use the same object shader program or another program if you have one
-    glUseProgram(objProgramId);
-    glUniformMatrix4fv(glGetUniformLocation(objProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
-    glUniformMatrix4fv(glGetUniformLocation(objProgramId, "myModelMatrix"), 1, false, glm::value_ptr(orbitModelMatrix));
-    glUniformMatrix4fv(glGetUniformLocation(objProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
-
-    // Render another sphere (assuming you have a second sphere mesh)
-    mySecondObjectPLY->renderVBO(objProgramId);
+    // Draw the planets
+    
+    // Increment orbitAngle somewhere outside this function or here
+    orbitAngle += 0.001f; 
 
 
+    for (int i = 0; i < NUM_PLANETS; i++) {
+        unsigned int planetProgramId = myShaderManager->getShaderProgram("planetShaders")->programID;
+        glUseProgram(planetProgramId);
 
-	//second draw the enviroment sphere
+        // load the planetMap shader defined above into the 2nd texture index
+        glActiveTexture(GL_TEXTURE0 + 2 + i);
+        glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("planetMap" + std::to_string(i)));
+
+        // Set uniforms common to all planets
+        glUniform1i(glGetUniformLocation(planetProgramId, "environMap"), 2 + i);
+        glUniform1i(glGetUniformLocation(planetProgramId, "objectTexture"), 1);
+        glUniform3fv(glGetUniformLocation(planetProgramId, "cameraPos"), 1, glm::value_ptr(eyePosition));
+        glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
+        glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
+
+        glm::mat4 planetModelMatrix = glm::mat4(1.0f);
+
+        // Give each planet a different orbit radius and angle offset
+        // float radius = 2.0f + i * 1.0f;        // Each planet farther out by 1 unit
+        // float angle = orbitAngle;      // Each planet shifted by i
+
+        // planetModelMatrix = glm::rotate(planetModelMatrix, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+        // planetModelMatrix = glm::translate(planetModelMatrix, glm::vec3(radius, 0.0f, 0.0f))
+        
+        // Eliptical orbits? 
+        // Calculate elliptical orbit parameters
+        float angle = orbitAngle + i * 1.0f; // Offset angle for each planet
+        float radiusX = 2.0f + i * 0.5f;     // X-axis semi-major radius
+        float radiusZ = 1.5f + i * 0.5f;     // Z-axis semi-minor radius
+
+        // Calculate x, y, z positions
+        float x = radiusX * cos(angle); // Elliptical x-position
+        float z = radiusZ * sin(angle); // Elliptical z-position
+
+        // Add y-axis oscillation up to 50% of the orbit height
+        float maxY = 0.5f * radiusX; // Max height of oscillation
+        float y = maxY * sin(angle); // Oscillation along y-axis
+
+        // Translate the planet to its elliptical orbit position
+        planetModelMatrix = glm::translate(planetModelMatrix, glm::vec3(x, y, z));
+
+
+        // Scale the planets down by a factor of 4
+        planetModelMatrix = glm::scale(planetModelMatrix, glm::vec3(0.75f * (i+1)));
+
+        // Set the model matrix for each planet
+        glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(planetModelMatrix));
+        planets[i]->renderVBO(planetProgramId);
+    }
+
+
+	// Draw the enviroment sphere
 	unsigned int envProgramId =
 		myShaderManager->getShaderProgram("environmentShaders")->programID;
 	glUseProgram(envProgramId);
@@ -168,7 +217,7 @@ void MyGLCanvas::drawScene() {
 	environmentModelMatrix = glm::rotate(environmentModelMatrix, TO_RADIANS(rotWorldVec.y), glm::vec3(0.0f, 1.0f, 0.0f));
 	environmentModelMatrix = glm::rotate(environmentModelMatrix, TO_RADIANS(rotWorldVec.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-	environmentModelMatrix = glm::scale(environmentModelMatrix, glm::vec3(7.0f));
+	environmentModelMatrix = glm::scale(environmentModelMatrix, glm::vec3(11.0f));
 	glUniform1i(glGetUniformLocation(envProgramId, "environMap"), 0);
 	glUniform3fv(glGetUniformLocation(envProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
 	glUniformMatrix4fv(glGetUniformLocation(envProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));

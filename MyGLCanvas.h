@@ -64,10 +64,14 @@ private:
 	TextureManager* myTextureManager;
 	ShaderManager* myShaderManager;
 	ply* myObjectPLY;
+    ply* myEnvironmentPLY;
+
+    std::vector<ply *> planets; 
 	ply* mySecondObjectPLY;
-	ply* myEnvironmentPLY;
+	
 
     float orbitAngle; 
+    int NUM_PLANETS;
 
 	glm::mat4 perspectiveMatrix;
 
