@@ -53,7 +53,11 @@ private:
 
 	void initShaders();
 
-	int handle(int);
+    void createPlane(unsigned int programID);
+    unsigned int planeVAO;
+    unsigned int planevertices;
+
+    int handle(int);
 	void resize(int x, int y, int w, int h);
 	void updateCamera(int width, int height);
 
