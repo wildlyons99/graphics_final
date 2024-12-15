@@ -64,7 +64,7 @@ ppm::ppm(std::string _fileName){
         
               magicNumber.erase(std::remove(magicNumber.begin(), magicNumber.end(), '\r'), magicNumber.end());
 			  if (magicNumber.compare("P3") != 0) {
-				  std::cout <<  "Incorrect image file format.Cannot load texutre" << std::endl;
+				  std::cout <<  "Incorrect image file format.Cannot load texture" << std::endl;
 				  break;
 			  }
 		  }
