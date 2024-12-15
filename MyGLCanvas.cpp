@@ -12,7 +12,6 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	rotWorldVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	lightPos = eyePosition;
     // test out noise
-    vec2 noise = glm::perlin(vec2(0.0f, 0.0f));
 
 	viewAngle = 60;
 	clipNear = 0.01f;
