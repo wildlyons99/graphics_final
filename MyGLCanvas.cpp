@@ -2,6 +2,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <glm/gtc/random.hpp>
+
 #include <vector>
 
 MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window(x, y, w, h, l) {
@@ -32,10 +34,48 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	myObjectPLY = new ply("./data/sphere.ply");
 	myEnvironmentPLY = new ply("./data/sphere.ply");
 
+
+    // Potential sets of ply and ppm files
+    std::vector<string> availablePLY = {
+        "./data/sphere.ply",
+        "./data/cow.ply",
+        "./data/teapot.ply",
+        "./data/bunny.ply"
+    };
+
+    std::vector<string> availablePPM = {
+        "./data/sphere-map-castle.ppm",
+        "./data/sphere-map-nature.ppm",
+        "./data/boccioni.ppm",
+        "./data/brick.ppm"
+    };
+
+    // for (int i = 0; i < NUM_PLANETS; i++) {
+    //     // Random selection of a PLY and texture
+    //     int plyIndex = (int) glm::linearRand(0.0f, (float) availablePLY.size() + 0.9f);
+    //     int ppmIndex = (int) glm::linearRand(0.0f, (float) availablePPM.size() + 0.9f);
+
+    //     printf("Random Numbers: %d and %d\n", plyIndex, ppmIndex); 
+
+    //     planetPLYFilenames.push_back(availablePLY[plyIndex]);
+    //     planetTextureFilenames.push_back(availablePPM[ppmIndex]);
+
+    //     planets.push_back(new ply(planetPLYFilenames[i]));
+    // }
+
+    // // non random planets
     for (int i = 0; i < NUM_PLANETS; i++) {
-        if (i == 1)
-            planets.push_back(new ply("./data/cow.ply"));
-        planets.push_back(new ply("./data/sphere.ply"));
+        switch (i) { 
+            case 0: 
+                planets.push_back(new ply("./data/milleniumFalcon.ply")); 
+                break; 
+            case 1: 
+                planets.push_back(new ply("./data/cow.ply"));
+                break; 
+            case 2: 
+                planets.push_back(new ply("./data/sphere.ply"));
+                break;
+        }
     }
 }
 
@@ -43,8 +83,11 @@ MyGLCanvas::~MyGLCanvas() {
 	delete myTextureManager;
 	delete myShaderManager;
 	delete myObjectPLY;
-    delete mySecondObjectPLY; 
 	delete myEnvironmentPLY;
+
+    for (int i = 0; i < NUM_PLANETS; i++) {
+        delete planets[i]; 
+    } 
 }
 
 void MyGLCanvas::initShaders() {
@@ -63,8 +106,23 @@ void MyGLCanvas::initShaders() {
     // }
 
     for (int i = 0; i < NUM_PLANETS; i++) {
-        myTextureManager->loadTexture("planetMap" + std::to_string(i), i == 1 ? "./data/boccioni.ppm" : "./data/sphere-map-nature.ppm"); // could do planet map i? 
-	    // myTextureManager->loadTexture("objectTexture", "./data/brick.ppm");
+        std::string ppm_path; 
+        switch (i) { 
+            case 0: 
+                ppm_path = "./data/sphere-map-nature.ppm"; 
+                break; 
+            case 1: 
+                ppm_path = "./data/boccioni.ppm"; 
+                break; 
+            case 2: 
+                ppm_path = "./data/sphere-map-castle.ppm";
+                break;
+            default: 
+                ppm_path = "./data/brick.ppm";
+                break; 
+        }
+        myTextureManager->loadTexture("planetMap" + std::to_string(i), ppm_path); 
+        // myTextureManager->loadTexture("planetMap" + std::to_string(i), planetTextureFilenames[i]); 
 
         myShaderManager->addShaderProgram("planetShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
         planets[i]->buildArrays();
@@ -93,7 +151,7 @@ void MyGLCanvas::draw() {
 		/****************************************/
 
 		glEnable(GL_DEPTH_TEST);
-		glPolygonOffset(1, 1);
+		glPolygonOffset(1, 1); 
 		if (firstTime == true) {
 			firstTime = false;
 			initShaders();

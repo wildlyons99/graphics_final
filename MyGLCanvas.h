@@ -11,7 +11,7 @@
 #  endif
 #  include <GL/glew.h>
 #endif
-#include <FL/glut.h>
+#include <FL/glut.H>
 #include <FL/glu.h>
 #include <glm/glm.hpp>
 #include <time.h>
@@ -25,10 +25,6 @@
 
 class MyGLCanvas : public Fl_Gl_Window {
 public:
-
-	// Length of our spline (i.e how many points do we randomly generate)
-
-
 	glm::vec3 eyePosition;
 	glm::vec3 rotVec;
 	glm::vec3 lookatPoint;
@@ -67,7 +63,10 @@ private:
     ply* myEnvironmentPLY;
 
     std::vector<ply *> planets; 
-	ply* mySecondObjectPLY;
+
+    // saving the PLY and PLL path for each planet
+    std::vector<string> planetPLYFilenames;
+    std::vector<string> planetTextureFilenames;
 	
 
     float orbitAngle; 
