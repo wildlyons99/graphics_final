@@ -34,6 +34,7 @@ public:
 	glm::vec3 lookatPoint;
 	glm::vec3 lightPos;
 	glm::vec3 rotWorldVec;
+    glm::vec3 up;
 
 	int useDiffuse;
 	float lightAngle; //used to control where the light is coming from
@@ -60,6 +61,10 @@ private:
 	int handle(int);
 	void resize(int x, int y, int w, int h);
 	void updateCamera(int width, int height);
+
+    float clickIntersect(glm::vec3 eyePointP, glm::vec3 rayV, glm::mat4 transformMatrix);
+    glm::vec3 generateRay(int pixelX, int pixelY);
+    glm::mat4 getInverseModelViewMatrix();
 
 	TextureManager* myTextureManager;
 	ShaderManager* myShaderManager;

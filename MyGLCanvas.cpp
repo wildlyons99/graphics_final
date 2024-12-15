@@ -10,6 +10,7 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	rotVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	rotWorldVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	lightPos = eyePosition;
+    up = glm::vec3(0.0f, 1.0f, 0.0f);
 
 	viewAngle = 60;
 	clipNear = 0.01f;
@@ -186,6 +187,80 @@ void MyGLCanvas::updateCamera(int width, int height) {
 	perspectiveMatrix = glm::perspective(TO_RADIANS(viewAngle), xy_aspect, clipNear, clipFar);
 }
 
+glm::mat4 MyGLCanvas::getInverseModelViewMatrix() {
+    glm::vec3 u, v, w;
+    w = -glm::normalize(lookatPoint);
+    u = glm::normalize(glm::cross(up, w));
+    v = glm::normalize(glm::cross(w, u));
+    glm::mat4 toCameraBasis = glm::mat4(glm::vec4(u, 0),
+        glm::vec4(v, 0),
+        glm::vec4(w, 0),
+        glm::vec4(0, 0, 0, 1));
+    glm::mat4 translateToEye = glm::translate(glm::mat4(1.0), eyePosition);
+    return translateToEye * toCameraBasis;
+}
+
+/* The generateRay function accepts the mouse click coordinates
+	(in x and y, which will be integers between 0 and screen width and 0 and screen height respectively).
+   The function returns the ray
+*/
+glm::vec3 MyGLCanvas::generateRay(int pixelX, int pixelY) {
+	glm::vec3 eye = eyePosition;
+	float viewAngle = viewAngle;
+	float screenWidth = w();
+	float screenHeight = h();
+	float aspectRatio = screenWidth / screenHeight;
+
+	float ndcX = (2.0f * pixelX) / screenWidth - 1.0f;
+	float ndcY = 1.0f - (2.0f * pixelY) / screenHeight;
+
+	float tanHalfViewAngle = glm::tan(glm::radians(viewAngle) / 2.0f);
+	float px = ndcX * tanHalfViewAngle * aspectRatio;
+	float py = ndcY * tanHalfViewAngle;
+	glm::vec3 pixelCameraSpace(px, py, -1.0f);
+
+	glm::mat4 inverseViewMatrix = getInverseModelViewMatrix();
+	glm::vec4 pixelWorldSpace = inverseViewMatrix * glm::vec4(pixelCameraSpace, 1.0f);
+	glm::vec3 pixelWorldPos = glm::vec3(pixelWorldSpace) / pixelWorldSpace.w;
+
+	glm::vec3 rayDirection = glm::vec3(pixelWorldSpace) - eye;
+
+	return rayDirection;
+}
+
+float MyGLCanvas::clickIntersect (glm::vec3 eyePointP, glm::vec3 rayV, glm::mat4 transformMatrix) {
+	glm::vec3 eyePObj = glm::inverse(transformMatrix) * glm::vec4(eyePointP, 1.0f);
+	glm::vec3 rayObj = glm::inverse(transformMatrix) * glm::vec4(rayV, 0.0f);
+
+	float A = glm::dot(rayObj, rayObj);
+	float B = 2.0 * glm::dot(rayObj, eyePObj);
+	float C = glm::dot(eyePObj, eyePObj) - 0.25;
+
+	float discriminant = pow(B, 2) - 4.0 * A * C;
+
+	// no intersection
+	if (discriminant < 0) return -1.0;
+
+	float t1 = (-B - sqrt(discriminant)) / (2.0 * A);
+	float t2 = (-B + sqrt(discriminant)) / (2.0 * A);
+
+	// return nearest intersection
+	if (t1 > 0 && t2 > 0)
+	{
+		return std::min(t1, t2);
+	}
+	else if (t1 > 0)
+	{
+		return t1;
+	}
+	else if (t2 > 0)
+	{
+		return t2;
+	}
+
+	return -1.0;
+}
+
 
 int MyGLCanvas::handle(int e) {
 	//static int first = 1;
@@ -205,14 +280,46 @@ int MyGLCanvas::handle(int e) {
 	}
 #endif	
 	//printf("Event was %s (%d)\n", fl_eventnames[e], e);
+    int mouseX;
+    int mouseY;
+    float t;
+    int closestObjID;
+    int objects = 10; // TODO: delete
+    glm::mat4 deleteThis = glm::mat4(1.0); // TODO: delete
 	switch (e) {
-	case FL_DRAG:
-	case FL_MOVE:
-	case FL_PUSH:
-	case FL_RELEASE:
-	case FL_KEYUP:
-	case FL_MOUSEWHEEL:
-		break;
+        case FL_DRAG:
+            break;
+        case FL_MOVE:
+            break;
+        case FL_PUSH:
+            mouseX = (int)Fl::event_x();
+            mouseY = (int)Fl::event_y();
+            t = std::numeric_limits<float>::max();
+            closestObjID = -1;
+            for (int i = 0; i < objects; i++) { // TODO get object IDs
+                float currIntersect = clickIntersect(eyePosition, generateRay(mouseX, mouseY), deleteThis); // TODO get transformMatrix
+                if (currIntersect != -1.0) {
+                    printf("hit!\n");
+                    if (currIntersect < t) {
+                        t = currIntersect;
+                        closestObjID = i;
+                    }
+                }
+            }
+            if (closestObjID != -1) {
+                printf("ID of closest object clicked: %d\n", closestObjID);
+                // zoomIn(closestObjID); // TODO zoomIn function
+            } else {
+                printf("miss!\n");
+            }
+            
+            return (1);
+        case FL_RELEASE:
+            break;
+        case FL_KEYUP:
+            break;
+        case FL_MOUSEWHEEL:
+            break;
 	}
 	return Fl_Gl_Window::handle(e);
 }
