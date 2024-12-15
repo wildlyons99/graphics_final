@@ -20,12 +20,12 @@ void main() {
     float v = (theta + PI / 2.0) / PI;
 
     vec2 uv = vec2(u, v);
-    // outputColor = texture(environMap, uv);
+    outputColor = texture(environMap, uv);
 
     // idk make a purple sky - kinda works not really
-    vec3 blue = vec3(0.0, 0.0, 1.0);     
-    vec3 purple = vec3(0.5, 0.0, 0.5);   
-    vec3 color = mix(blue, purple, u);
+    // vec3 blue = vec3(0.0, 0.0, 1.0);     
+    // vec3 purple = vec3(0.5, 0.0, 0.5);   
+    // vec3 color = mix(blue, purple, u);
 
-    outputColor = vec4(color, 1.0);
+    // outputColor = vec4(color, 1.0);
 }
