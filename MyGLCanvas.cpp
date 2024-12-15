@@ -1,6 +1,7 @@
 #include "MyGLCanvas.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/noise.hpp>
 
 #include <glm/gtc/random.hpp>
 
@@ -14,6 +15,7 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	rotVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	rotWorldVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	lightPos = eyePosition;
+    // test out noise
 
 	viewAngle = 60;
 	clipNear = 0.01f;
@@ -132,9 +134,88 @@ void MyGLCanvas::initShaders() {
 	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
 	myEnvironmentPLY->buildArrays();
 	myEnvironmentPLY->bindVBO(myShaderManager->getShaderProgram("environmentShaders")->programID);
+
+    myShaderManager->addShaderProgram("planeShaders", "shaders/330/plane.vert", "shaders/330/plane.frag");
+    createPlane(myShaderManager->getShaderProgram("planeShaders")->programID);
 }
 
+void MyGLCanvas::createPlane(unsigned int programID) {
+    int rows = 500;
+    int cols = 500;
+    float spacing = 0.1f;
 
+    std::vector<float> vertices;
+    std::vector<unsigned int> indices;
+    std::vector<float> normals;
+    // Generate vertices and normals
+    for (int i = 0; i <= rows; ++i) {
+        for (int j = 0; j <= cols; ++j) {
+            float x = (j - cols / 2) * spacing; // X position
+            float y = 0.0f;        // Y position (flat grid)
+            float z = (i - rows / 2)  * spacing; // Z position
+
+            // Add vertex position
+            vertices.push_back(x);
+            vertices.push_back(y);
+            vertices.push_back(z);
+
+            // Add corresponding normal (pointing up in the Y direction)
+            normals.push_back(0.0f); // Normal X
+            normals.push_back(1.0f); // Normal Y
+            normals.push_back(0.0f); // Normal Z
+        }
+    }
+
+    // Generate indices for triangles
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            // Calculate indices of the corners of the grid cell
+            unsigned int topLeft = i * (cols + 1) + j;
+            unsigned int topRight = topLeft + 1;
+            unsigned int bottomLeft = (i + 1) * (cols + 1) + j;
+            unsigned int bottomRight = bottomLeft + 1;
+
+            // First triangle
+            indices.push_back(topLeft);
+            indices.push_back(bottomLeft);
+            indices.push_back(topRight);
+
+            // Second triangle
+            indices.push_back(topRight);
+            indices.push_back(bottomLeft);
+            indices.push_back(bottomRight);
+        }
+    }
+    unsigned int VBO, EBO, NBO;
+    glGenVertexArrays(1, &planeVAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    glGenBuffers(1, &NBO);
+
+    // BindplaneVAO 
+    glBindVertexArray(planeVAO);
+
+    // Vertex positions
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // Vertex normals
+    glBindBuffer(GL_ARRAY_BUFFER, NBO);
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), normals.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+
+    // Element indices
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+    // UnbindplaneVAO 
+    glBindVertexArray(0);
+    planevertices = indices.size();
+
+}
 
 void MyGLCanvas::draw() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -283,6 +364,23 @@ void MyGLCanvas::drawScene() {
 	glUniformMatrix4fv(glGetUniformLocation(envProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
 
 	myEnvironmentPLY->renderVBO(envProgramId);
+
+    // draw the plane
+    unsigned int planeProgramId = myShaderManager->getShaderProgram("planeShaders")->programID;
+    glUseProgram(planeProgramId);
+    glUniformMatrix4fv(glGetUniformLocation(planeProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
+    glUniformMatrix4fv(glGetUniformLocation(planeProgramId, "myModelMatrix"), 1, false, glm::value_ptr(modelMatrix));
+    glUniformMatrix4fv(glGetUniformLocation(planeProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
+    // pass in the light position
+    glUniform3fv(glGetUniformLocation(planeProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
+    // pass in the camera position
+    glUniform3fv(glGetUniformLocation(planeProgramId, "cameraPos"), 1, glm::value_ptr(cameraPosition));
+    // pass in the texture
+    glUniform1i(glGetUniformLocation(planeProgramId, "environMap"), 0);
+    // pass in the texture blend
+    glUniform1f(glGetUniformLocation(planeProgramId, "textureBlend"), textureBlend);
+    glBindVertexArray(planeVAO);
+    glDrawElements(GL_TRIANGLES, planevertices, GL_UNSIGNED_INT, 0);
 }
 
 
