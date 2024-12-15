@@ -140,9 +140,9 @@ void MyGLCanvas::initShaders() {
 }
 
 void MyGLCanvas::createPlane(unsigned int programID) {
-    int rows = 500;
-    int cols = 500;
-    float spacing = 0.1f;
+    int rows = 100;
+    int cols = 100;
+    float spacing = 0.05f;
 
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
@@ -245,7 +245,7 @@ void MyGLCanvas::draw() {
 
 	drawScene();
 }
-
+float myTime = 0;
 void MyGLCanvas::drawScene() {
 	// defining the view 
 	viewMatrix = glm::lookAt(eyePosition, lookatPoint, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -294,10 +294,15 @@ void MyGLCanvas::drawScene() {
     // Increment orbitAngle somewhere outside this function or here
     orbitAngle += 0.001f; 
 
+    unsigned int planetProgramId = myShaderManager->getShaderProgram("planetShaders")->programID;
+    glUseProgram(planetProgramId);
+    
+    glUniform3fv(glGetUniformLocation(planetProgramId, "cameraPos"), 1, glm::value_ptr(eyePosition));
+     glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
+        glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
 
     for (int i = 0; i < NUM_PLANETS; i++) {
-        unsigned int planetProgramId = myShaderManager->getShaderProgram("planetShaders")->programID;
-        glUseProgram(planetProgramId);
+        
 
         // load the planetMap shader defined above into the 2nd texture index
         glActiveTexture(GL_TEXTURE0 + 2 + i);
@@ -306,10 +311,7 @@ void MyGLCanvas::drawScene() {
         // Set uniforms common to all planets
         glUniform1i(glGetUniformLocation(planetProgramId, "environMap"), 2 + i);
         glUniform1i(glGetUniformLocation(planetProgramId, "objectTexture"), 1);
-        glUniform3fv(glGetUniformLocation(planetProgramId, "cameraPos"), 1, glm::value_ptr(eyePosition));
-        glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
-        glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
-
+       
         glm::mat4 planetModelMatrix = glm::mat4(1.0f);
 
         // Give each planet a different orbit radius and angle offset
@@ -380,7 +382,11 @@ void MyGLCanvas::drawScene() {
     glUniform1i(glGetUniformLocation(planeProgramId, "environMap"), 0);
     // pass in the texture blend
     glUniform1f(glGetUniformLocation(planeProgramId, "textureBlend"), textureBlend);
+    // pass in time
+    glUniform1f(glGetUniformLocation(planeProgramId, "myTime"), myTime);
+    myTime += 0.01f;
     glBindVertexArray(planeVAO);
+    
     glDrawElements(GL_TRIANGLES, planevertices, GL_UNSIGNED_INT, 0);
 }
 
