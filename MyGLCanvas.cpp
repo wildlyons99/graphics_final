@@ -15,7 +15,6 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	rotVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	rotWorldVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	lightPos = eyePosition;
-    up = glm::vec3(0.0f, 1.0f, 0.0f);
     // test out noise
 
 	viewAngle = 60;
@@ -249,7 +248,7 @@ void MyGLCanvas::draw() {
 
 void MyGLCanvas::drawScene() {
 	// defining the view 
-	glm::mat4 viewMatrix = glm::lookAt(eyePosition, lookatPoint, glm::vec3(0.0f, 1.0f, 0.0f));
+	viewMatrix = glm::lookAt(eyePosition, lookatPoint, glm::vec3(0.0f, 1.0f, 0.0f));
 
 	viewMatrix = glm::rotate(viewMatrix, TO_RADIANS(rotWorldVec.x), glm::vec3(1.0f, 0.0f, 0.0f));
 	viewMatrix = glm::rotate(viewMatrix, TO_RADIANS(rotWorldVec.y), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -340,6 +339,7 @@ void MyGLCanvas::drawScene() {
 
         // Scale the planets down by a factor of 4
         planetModelMatrix = glm::scale(planetModelMatrix, glm::vec3(0.75f * (i+1)));
+        planetMatrices.push_back(planetModelMatrix);
 
         // Set the model matrix for each planet
         glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(planetModelMatrix));
@@ -392,50 +392,27 @@ void MyGLCanvas::updateCamera(int width, int height) {
 	perspectiveMatrix = glm::perspective(TO_RADIANS(viewAngle), xy_aspect, clipNear, clipFar);
 }
 
-glm::mat4 MyGLCanvas::getInverseModelViewMatrix() {
-    glm::vec3 u, v, w;
-    w = -glm::normalize(lookatPoint);
-    u = glm::normalize(glm::cross(up, w));
-    v = glm::normalize(glm::cross(w, u));
-    glm::mat4 toCameraBasis = glm::mat4(glm::vec4(u, 0),
-        glm::vec4(v, 0),
-        glm::vec4(w, 0),
-        glm::vec4(0, 0, 0, 1));
-    glm::mat4 translateToEye = glm::translate(glm::mat4(1.0), eyePosition);
-    return translateToEye * toCameraBasis;
-}
-
 /* The generateRay function accepts the mouse click coordinates
 	(in x and y, which will be integers between 0 and screen width and 0 and screen height respectively).
    The function returns the ray
 */
 glm::vec3 MyGLCanvas::generateRay(int pixelX, int pixelY) {
-	glm::vec3 eye = eyePosition;
-	float viewAngle = viewAngle;
-	float screenWidth = w();
-	float screenHeight = h();
-	float aspectRatio = screenWidth / screenHeight;
+    glm::vec3 cameraRayDir = {-1.0f + 2.0f * pixelX / w() , 1.0f - 2.0f * pixelY / h(), -1.0f};
+	glm::vec3 worldRayDir = glm::inverse(perspectiveMatrix) * glm::inverse(viewMatrix) * glm::vec4(cameraRayDir, 1.0f);
+	worldRayDir = glm::normalize(worldRayDir);
 
-	float ndcX = (2.0f * pixelX) / screenWidth - 1.0f;
-	float ndcY = 1.0f - (2.0f * pixelY) / screenHeight;
-
-	float tanHalfViewAngle = glm::tan(glm::radians(viewAngle) / 2.0f);
-	float px = ndcX * tanHalfViewAngle * aspectRatio;
-	float py = ndcY * tanHalfViewAngle;
-	glm::vec3 pixelCameraSpace(px, py, -1.0f);
-
-	glm::mat4 inverseViewMatrix = getInverseModelViewMatrix();
-	glm::vec4 pixelWorldSpace = inverseViewMatrix * glm::vec4(pixelCameraSpace, 1.0f);
-	glm::vec3 pixelWorldPos = glm::vec3(pixelWorldSpace) / pixelWorldSpace.w;
-
-	glm::vec3 rayDirection = glm::vec3(pixelWorldSpace) - eye;
-
-	return rayDirection;
+    printf("worldRayDir: %f %f %f\n", worldRayDir.x, worldRayDir.y, worldRayDir.z);
+    printf("cameraRayDir: %f %f %f\n", cameraRayDir.x, cameraRayDir.y, cameraRayDir.z);
+	return worldRayDir;
 }
 
-float MyGLCanvas::clickIntersect (glm::vec3 eyePointP, glm::vec3 rayV, glm::mat4 transformMatrix) {
-	glm::vec3 eyePObj = glm::inverse(transformMatrix) * glm::vec4(eyePointP, 1.0f);
-	glm::vec3 rayObj = glm::inverse(transformMatrix) * glm::vec4(rayV, 0.0f);
+float MyGLCanvas::clickIntersect (glm::vec3 eyePointP, glm::vec3 rayV, glm::mat4 objToWorld) {
+    glm::mat4 worldToObj = glm::inverse(objToWorld);
+	glm::vec3 eyePObj = glm::vec3(worldToObj * glm::vec4(eyePointP, 1.0f));
+	glm::vec3 rayObj = glm::vec3(worldToObj * glm::vec4(rayV, 0.0f));
+
+    // printf("eye: %f %f %f\n", eyePObj.x, eyePObj.y, eyePObj.z);
+    // printf("obj: %f %f %f\n", rayObj.x, rayObj.y, rayObj.z);
 
 	float A = glm::dot(rayObj, rayObj);
 	float B = 2.0 * glm::dot(rayObj, eyePObj);
@@ -489,8 +466,6 @@ int MyGLCanvas::handle(int e) {
     int mouseY;
     float t;
     int closestObjID;
-    int objects = 10; // TODO: delete
-    glm::mat4 deleteThis = glm::mat4(1.0); // TODO: delete
 	switch (e) {
         case FL_DRAG:
             break;
@@ -501,8 +476,10 @@ int MyGLCanvas::handle(int e) {
             mouseY = (int)Fl::event_y();
             t = std::numeric_limits<float>::max();
             closestObjID = -1;
-            for (int i = 0; i < objects; i++) { // TODO get object IDs
-                float currIntersect = clickIntersect(eyePosition, generateRay(mouseX, mouseY), deleteThis); // TODO get transformMatrix
+            for (int i = 0; i < NUM_PLANETS; i++) { // TODO get object IDs
+                glm::mat4 currPlanetMatrix = planetMatrices[i];
+                // printf("\n" currPlanetMatrix.x.x);
+                float currIntersect = clickIntersect(eyePosition, generateRay(mouseX, mouseY), currPlanetMatrix); // TODO get transformMatrix
                 if (currIntersect != -1.0) {
                     printf("hit!\n");
                     if (currIntersect < t) {

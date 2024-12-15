@@ -30,7 +30,6 @@ public:
 	glm::vec3 lookatPoint;
 	glm::vec3 lightPos;
 	glm::vec3 rotWorldVec;
-    glm::vec3 up;
 
 	int useDiffuse;
 	float lightAngle; //used to control where the light is coming from
@@ -62,9 +61,8 @@ private:
 	void resize(int x, int y, int w, int h);
 	void updateCamera(int width, int height);
 
-    float clickIntersect(glm::vec3 eyePointP, glm::vec3 rayV, glm::mat4 transformMatrix);
+    float clickIntersect(glm::vec3 eyePointP, glm::vec3 rayV, glm::mat4 objToWorld);
     glm::vec3 generateRay(int pixelX, int pixelY);
-    glm::mat4 getInverseModelViewMatrix();
 
 	TextureManager* myTextureManager;
 	ShaderManager* myShaderManager;
@@ -72,6 +70,7 @@ private:
     ply* myEnvironmentPLY;
 
     std::vector<ply *> planets; 
+    std::vector<glm::mat4> planetMatrices; 
 
     // saving the PLY and PLL path for each planet
     std::vector<string> planetPLYFilenames;
@@ -82,6 +81,7 @@ private:
     int NUM_PLANETS;
 
 	glm::mat4 perspectiveMatrix;
+    glm::mat4 viewMatrix;
 
 	bool firstTime;
 };
