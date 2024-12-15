@@ -95,7 +95,7 @@ MyGLCanvas::~MyGLCanvas() {
 void MyGLCanvas::initShaders() {
 	myTextureManager->loadTexture("environMap", "./data/sphere-map-market.ppm");
 	myTextureManager->loadTexture("objectTexture", "./data/brick.ppm");
-    myTextureManager->loadTexture("perlinNoise3", "./data/simpleNoise.ppm");
+    myTextureManager->loadTexture("noise", "./data/simpleNoise.ppm");
     
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
@@ -142,9 +142,9 @@ void MyGLCanvas::initShaders() {
 }
 
 void MyGLCanvas::createPlane(unsigned int programID) {
-    int rows = 100;
-    int cols = 100;
-    float length = 2.0f;
+    int rows = 25;
+    int cols = 25;
+    float length = 3.0f;
     float spacing = length / cols;
 
     std::vector<float> vertices;
@@ -272,27 +272,27 @@ void MyGLCanvas::drawScene() {
 	glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("environMap"));
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("objectTexture"));
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("perlinNoise3"));
+    glActiveTexture(GL_TEXTURE11);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("noise"));
 
 	//first draw the object sphere
-	unsigned int objProgramId =
-		myShaderManager->getShaderProgram("objectShaders")->programID;
-	glUseProgram(objProgramId);
-
-	glUniform1i(glGetUniformLocation(objProgramId, "environMap"), 0);
-	glUniform1i(glGetUniformLocation(objProgramId, "objectTexture"), 1);
-	glUniform1i(glGetUniformLocation(objProgramId, "useDiffuse"), useDiffuse ? 1 : 0);
-	glUniform1f(glGetUniformLocation(objProgramId, "textureBlend"), textureBlend);
+	// unsigned int objProgramId =
+	// 	myShaderManager->getShaderProgram("objectShaders")->programID;
+	// glUseProgram(objProgramId);
+	//
+	// glUniform1i(glGetUniformLocation(objProgramId, "environMap"), 0);
+	// glUniform1i(glGetUniformLocation(objProgramId, "objectTexture"), 1);
+	// glUniform1i(glGetUniformLocation(objProgramId, "useDiffuse"), useDiffuse ? 1 : 0);
+	// glUniform1f(glGetUniformLocation(objProgramId, "textureBlend"), textureBlend);
 	glm::mat4 inverseViewMatrix = glm::inverse(viewMatrix);
 	glm::vec3 cameraPosition = glm::vec3(inverseViewMatrix[3]);
-	glUniform3fv(glGetUniformLocation(objProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
-	glUniform3fv(glGetUniformLocation(objProgramId, "cameraPos"), 1, glm::value_ptr(cameraPosition));
-	glUniformMatrix4fv(glGetUniformLocation(objProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
-	glUniformMatrix4fv(glGetUniformLocation(objProgramId, "myModelMatrix"), 1, false, glm::value_ptr(modelMatrix));
-	glUniformMatrix4fv(glGetUniformLocation(objProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
-	myObjectPLY->renderVBO(objProgramId);
-
+	// glUniform3fv(glGetUniformLocation(objProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
+	// glUniform3fv(glGetUniformLocation(objProgramId, "cameraPos"), 1, glm::value_ptr(cameraPosition));
+	// glUniformMatrix4fv(glGetUniformLocation(objProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
+	// glUniformMatrix4fv(glGetUniformLocation(objProgramId, "myModelMatrix"), 1, false, glm::value_ptr(modelMatrix));
+	// glUniformMatrix4fv(glGetUniformLocation(objProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
+	// myObjectPLY->renderVBO(objProgramId);
+	//
 
     // Draw the planets
     
@@ -390,7 +390,7 @@ void MyGLCanvas::drawScene() {
     glUniform1f(glGetUniformLocation(planeProgramId, "myTime"), myTime);
     myTime += 0.01f;
     // pass in the noise texture
-    glUniform1i(glGetUniformLocation(planeProgramId, "noiseTexture"), 2);
+    glUniform1i(glGetUniformLocation(planeProgramId, "noiseTexture"), 11);
     glBindVertexArray(planeVAO);
     
     glDrawElements(GL_TRIANGLES, planevertices, GL_UNSIGNED_INT, 0);
