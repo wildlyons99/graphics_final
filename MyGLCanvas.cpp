@@ -95,6 +95,8 @@ MyGLCanvas::~MyGLCanvas() {
 void MyGLCanvas::initShaders() {
 	myTextureManager->loadTexture("environMap", "./data/sphere-map-market.ppm");
 	myTextureManager->loadTexture("objectTexture", "./data/brick.ppm");
+    myTextureManager->loadTexture("perlinNoise3", "./data/simpleNoise.ppm");
+    
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	myObjectPLY->buildArrays();
@@ -135,14 +137,15 @@ void MyGLCanvas::initShaders() {
 	myEnvironmentPLY->buildArrays();
 	myEnvironmentPLY->bindVBO(myShaderManager->getShaderProgram("environmentShaders")->programID);
 
-    myShaderManager->addShaderProgram("planeShaders", "shaders/330/plane.vert", "shaders/330/plane.frag");
+    myShaderManager->addShaderProgram("planeShaders", "shaders/330/plane.vert", "shaders/330/plane.frag", "shaders/330/plane-geo.glsl");
     createPlane(myShaderManager->getShaderProgram("planeShaders")->programID);
 }
 
 void MyGLCanvas::createPlane(unsigned int programID) {
     int rows = 100;
     int cols = 100;
-    float spacing = 0.05f;
+    float length = 2.0f;
+    float spacing = length / cols;
 
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
@@ -269,6 +272,8 @@ void MyGLCanvas::drawScene() {
 	glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("environMap"));
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("objectTexture"));
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("perlinNoise3"));
 
 	//first draw the object sphere
 	unsigned int objProgramId =
@@ -384,6 +389,8 @@ void MyGLCanvas::drawScene() {
     // pass in time
     glUniform1f(glGetUniformLocation(planeProgramId, "myTime"), myTime);
     myTime += 0.01f;
+    // pass in the noise texture
+    glUniform1i(glGetUniformLocation(planeProgramId, "noiseTexture"), 2);
     glBindVertexArray(planeVAO);
     
     glDrawElements(GL_TRIANGLES, planevertices, GL_UNSIGNED_INT, 0);

@@ -8,19 +8,23 @@ uniform mat4 myViewMatrix;         // View transformation matrix
 uniform mat4 myPerspectiveMatrix;   // Projection matrix
 uniform float myTime;               // Time
 
-out vec3 vNormal;           // Pass normal to fragment shader
-out vec3 vWorldPos;         // Pass world position to fragment shader
+uniform sampler2D noiseTexture;
+
 
 float genHeight(float x, float z) {
-    return 0.1 * sin((x + myTime) * 10) * sin((z + myTime) * 10);
+    // Generate a height value based on the x and z position from a noise texture
+    vec2 uv = vec2(x , z);
+    vec3 tex = texture(noiseTexture, uv).xyz;
+    float height = tex.r;
+    return 0.1 * height;
 }
 void main() {
     // randomly move vertex up
     vec3 newPosition = aPosition;
-    newPosition.y -= 1;
+    newPosition.y -= 0.5;
     newPosition.y += genHeight(aPosition.x, aPosition.z);
     // calculate the new normal by generating close points and taking the cross product
-    float epsilon = 0.00001;
+    float epsilon = 0.01;
     vec3 dx = vec3(epsilon, 0, 0);
     vec3 dz = vec3(0, 0, epsilon);
     float heightX1 = genHeight(aPosition.x + epsilon, aPosition.z);
@@ -33,11 +37,12 @@ void main() {
     
     // Transform the vertex position to world space
     vec4 worldPos = myModelMatrix * vec4(newPosition, 1.0);
-    vWorldPos = worldPos.xyz;
+//    vWorldPos = worldPos.xyz;
 
     // Transform the normal (ignore translation)
-    vNormal = normalize(mat3(transpose(inverse(myModelMatrix))) * newNormal);
+//    vNormal = normalize(mat3(transpose(inverse(myModelMatrix))) * newNormal);
 
     // Transform to clip space
-    gl_Position = myPerspectiveMatrix * myViewMatrix * worldPos;
+//    gl_Position = myPerspectiveMatrix * myViewMatrix * worldPos;
+     gl_Position = vec4(newPosition, 1);
 }

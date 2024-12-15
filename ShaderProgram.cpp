@@ -16,6 +16,7 @@ ShaderProgram::ShaderProgram() {
 	programID = -1;
 	vertexShaderID = -1;
 	fragmentShaderID = -1;
+    geometryShaderID = -1;
 }
 
 ShaderProgram::~ShaderProgram() {
