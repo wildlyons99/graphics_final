@@ -5,6 +5,7 @@
 
 layout(location = 0) in vec3 aPosition;  // Vertex position
 layout(location = 1) in vec3 aNormal;    // Vertex normal
+layout(location = 2) in vec2 aTexCoord;  // Texture coordinates
 
 uniform mat4 myModelMatrix;        // Model transformation matrix
 uniform mat4 myViewMatrix;         // View transformation matrix
@@ -24,9 +25,10 @@ float smoothMax(float a, float b, float k) {
     return mix(b, a, h) - k * h * (1.0 - h);
 }
 void main() {
-    float terrainHeight = texture(noiseTexture, aPosition.xz).r;
-    float height = smoothMax(terrainHeight, oceanLevel, 0.1);
-    vec3 newPosition = aPosition;
+    float terrainHeight = texture(noiseTexture, aTexCoord).r;
+    float height = smoothMax(terrainHeight, 0.5, 0.1);
+//    float height = terrainHeight;
+    vec3 newPosition = aPosition + aNormal * 1 * height;
     
     vNormal = normalize(transpose(inverse(mat3(myModelMatrix))) * aNormal);
     vWorldPos = (myModelMatrix * vec4(aPosition, 1)).xyz;

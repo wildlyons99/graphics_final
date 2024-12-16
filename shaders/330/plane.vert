@@ -2,6 +2,7 @@
 
 layout(location = 0) in vec3 aPosition;  // Vertex position
 layout(location = 1) in vec3 aNormal;    // Vertex normal
+layout(location = 2) in vec2 aTexCoord;  // Texture coordinates
 
 uniform mat4 myModelMatrix;        // Model transformation matrix
 uniform mat4 myViewMatrix;         // View transformation matrix
@@ -19,7 +20,7 @@ float genHeight(float x, float z) {
     // Generate a height value based on the x and z position from a noise texture
     // Use the time as a bias to move around the noise texture
     
-    vec2 uv = vec2((x + 1.5) / 3.0f + 0.1 * myTime, (z + 1.5) / 3.0f + 0.1 * myTime); 
+    vec2 uv = vec2(aTexCoord.x + 0.1 * myTime, aTexCoord.y + 0.1 * myTime); 
     vec3 tex = texture(noiseTexture, uv).xyz;
     float height = tex.r;
     

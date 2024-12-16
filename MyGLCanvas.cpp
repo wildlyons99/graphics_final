@@ -95,8 +95,9 @@ MyGLCanvas::~MyGLCanvas() {
 void MyGLCanvas::initShaders() {
 	myTextureManager->loadTexture("environMap", "./data/sphere-map-market.ppm");
 	myTextureManager->loadTexture("objectTexture", "./data/brick.ppm");
-    myTextureManager->loadTexture("noise", "./data/simpleNoise.ppm");
+    myTextureManager->loadTexture("noise", "./data/64noise3octaves.ppm");
     myTextureManager->loadTexture("colorMap", "./data/colorMap.ppm");
+    myTextureManager->loadTexture("planetNoise", "./data/256noise3octaves.ppm");
     
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
@@ -142,7 +143,7 @@ void MyGLCanvas::initShaders() {
     createPlane(myShaderManager->getShaderProgram("planeShaders")->programID);
 
     myShaderManager->addShaderProgram("proceduralPlanet", "shaders/330/proceduralPlanet.vert", "shaders/330/proceduralPlanet.frag");
-    createIcosphereVAO(3);
+    createIcosphereVAO(5);
 }
 struct Vertex {
     float position[3];
@@ -264,20 +265,22 @@ void MyGLCanvas::createIcosphereVAO(int recursionLevel) {
 }
 
 void MyGLCanvas::createPlane(unsigned int programID) {
-    int rows = 127;
-    int cols = 127;
-    float length = 8.0f;
+    int rows = 63;
+    int cols = 63;
+    float length = 16.0f;
     float spacing = length / cols;
 
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
     std::vector<float> normals;
-    // Generate vertices and normals
+    std::vector<float> uvs; // To store UV coordinates
+
+    // Generate vertices, normals, and UV coordinates
     for (int i = 0; i <= rows; ++i) {
         for (int j = 0; j <= cols; ++j) {
             float x = (j - cols / 2) * spacing; // X position
-            float y = 0.0f;        // Y position (flat grid)
-            float z = (i - rows / 2)  * spacing; // Z position
+            float y = 0.0f;                     // Y position (flat grid)
+            float z = (i - rows / 2) * spacing; // Z position
 
             // Add vertex position
             vertices.push_back(x);
@@ -288,6 +291,12 @@ void MyGLCanvas::createPlane(unsigned int programID) {
             normals.push_back(0.0f); // Normal X
             normals.push_back(1.0f); // Normal Y
             normals.push_back(0.0f); // Normal Z
+
+            // Add UV coordinates (normalized to [0, 1])
+            float u = static_cast<float>(j) / cols;
+            float v = static_cast<float>(i) / rows;
+            uvs.push_back(u);
+            uvs.push_back(v);
         }
     }
 
@@ -311,13 +320,15 @@ void MyGLCanvas::createPlane(unsigned int programID) {
             indices.push_back(bottomRight);
         }
     }
-    unsigned int VBO, EBO, NBO;
+
+    unsigned int VBO, EBO, NBO, UVBO;
     glGenVertexArrays(1, &planeVAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
     glGenBuffers(1, &NBO);
+    glGenBuffers(1, &UVBO);
 
-    // BindplaneVAO 
+    // Bind planeVAO
     glBindVertexArray(planeVAO);
 
     // Vertex positions
@@ -332,15 +343,22 @@ void MyGLCanvas::createPlane(unsigned int programID) {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
 
+    // UV coordinates
+    glBindBuffer(GL_ARRAY_BUFFER, UVBO);
+    glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(float), uvs.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(2);
+
     // Element indices
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
-    // UnbindplaneVAO 
+    // Unbind planeVAO
     glBindVertexArray(0);
-    planevertices = indices.size();
 
+    planevertices = indices.size();
 }
+
 
 void MyGLCanvas::draw() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -398,6 +416,8 @@ void MyGLCanvas::drawScene() {
     glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("noise"));
     glActiveTexture(GL_TEXTURE12);
     glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("colorMap"));
+    glActiveTexture(GL_TEXTURE13);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("planetNoise"));
 
 	//first draw the object sphere
 	// unsigned int objProgramId =
@@ -526,11 +546,14 @@ void MyGLCanvas::drawScene() {
     glUniformMatrix4fv(glGetUniformLocation(proceduralPlanetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
     glUniformMatrix4fv(glGetUniformLocation(proceduralPlanetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(modelMatrix));
     glUniformMatrix4fv(glGetUniformLocation(proceduralPlanetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
+    glUniform1f(glGetUniformLocation(planeProgramId, "myTime"), myTime);
     glUniform3fv(glGetUniformLocation(proceduralPlanetProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
     glUniform3fv(glGetUniformLocation(proceduralPlanetProgramId, "cameraPos"), 1, glm::value_ptr(cameraPosition));
-    glUniform1i(glGetUniformLocation(planeProgramId, "noiseTexture"), 11);
+    glUniform1i(glGetUniformLocation(planeProgramId, "noiseTexture"), 13);
     // pass in the color map
     glUniform1i(glGetUniformLocation(planeProgramId, "colorTexture"), 12);
+
+    glUniform1f(glGetUniformLocation(proceduralPlanetProgramId, "oceanLevel"), 0.1f);
     glBindVertexArray(icosphereVAO);
     glDrawElements(GL_TRIANGLES, icosphereVertices, GL_UNSIGNED_INT, 0);
     

@@ -20,8 +20,8 @@ void main() {
     vec3 normal = normalize(cross(edge1, edge2));
 
     for (int i = 0; i < 3; ++i) {
-//        vNormal = normalize(mat3(transpose(inverse(myModelMatrix))) * normal);
-        vNormal = myNormal[i];
+        vNormal = normalize(mat3(transpose(inverse(myModelMatrix))) * normal);
+//        vNormal = myNormal[i];
         vWorldPos = (myModelMatrix * gl_in[i].gl_Position).xyz;
         gl_Position = myPerspectiveMatrix * myViewMatrix * myModelMatrix * gl_in[i].gl_Position;
         vColor = color[i];
