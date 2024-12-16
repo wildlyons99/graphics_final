@@ -79,6 +79,7 @@ private:
 	
 
     float orbitAngle; 
+    bool orbitPaused;
     int NUM_PLANETS;
 
 	glm::mat4 perspectiveMatrix;

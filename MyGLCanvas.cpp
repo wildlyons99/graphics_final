@@ -25,6 +25,7 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	textureBlend = 0.0f;
 
     orbitAngle = 0.0f;
+    orbitPaused = false;
     NUM_PLANETS = 3; 
 
 	useDiffuse = false;
@@ -292,7 +293,9 @@ void MyGLCanvas::drawScene() {
     // Draw the planets
     
     // Increment orbitAngle somewhere outside this function or here
-    orbitAngle += 0.001f; 
+    if (!orbitPaused) {
+        orbitAngle += 0.001f; 
+    }
 
     unsigned int planetProgramId = myShaderManager->getShaderProgram("planetShaders")->programID;
     glUseProgram(planetProgramId);
@@ -408,11 +411,10 @@ glm::vec3 MyGLCanvas::generateRay(int pixelX, int pixelY) {
     viewRay.z = -1.0f;
     viewRay.w = 0.0f;
 	glm::vec3 worldRayDir = glm::inverse(viewMatrix) * viewRay;
-	// glm::vec3 worldRayDir = glm::inverse(viewMatrix) * glm::inverse(perspectiveMatrix) * glm::vec4(cameraRayDir, 1.0f);
 	worldRayDir = glm::normalize(worldRayDir);
 
-    printf("worldRayDir: %f %f %f\n", worldRayDir.x, worldRayDir.y, worldRayDir.z);
-    printf("cameraRayDir: %f %f %f\n", cameraRayDir.x, cameraRayDir.y, cameraRayDir.z);
+    // printf("worldRayDir: %f %f %f\n", worldRayDir.x, worldRayDir.y, worldRayDir.z);
+    // printf("cameraRayDir: %f %f %f\n", cameraRayDir.x, cameraRayDir.y, cameraRayDir.z);
 	return worldRayDir;
 }
 
@@ -486,7 +488,6 @@ int MyGLCanvas::handle(int e) {
             for (int i = 0; i < NUM_PLANETS; i++) {
                 glm::mat4 currPlanetMatrix = planetMatrices[i];
                 float currIntersect = clickIntersect(cameraPosition, generateRay(mouseX, mouseY), currPlanetMatrix);
-                printf("eye pos: %f %f %f\n", cameraPosition.x, cameraPosition.y, cameraPosition.z);
                 if (currIntersect != -1.0) {
                     printf("hit!\n");
                     if (currIntersect < t) {
@@ -497,6 +498,7 @@ int MyGLCanvas::handle(int e) {
             }
             if (closestObjID != -1) {
                 printf("ID of closest object clicked: %d\n", closestObjID);
+                orbitPaused = true;
                 // zoomIn(closestObjID); // TODO zoomIn function
             } else {
                 printf("miss!\n");
@@ -504,6 +506,7 @@ int MyGLCanvas::handle(int e) {
             
             return (1);
         case FL_RELEASE:
+            orbitPaused = false;
             break;
         case FL_KEYUP:
             break;
