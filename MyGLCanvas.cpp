@@ -107,13 +107,6 @@ void MyGLCanvas::initShaders() {
 	myObjectPLY->buildArrays();
 	myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
 
-
-    // to use? 
-    // for (int i = 0; i < NUM_PLANETS; i++) {
-    //     std::string textureName = "planetMap" + std::to_string(i);
-    //     myTextureManager->loadTexture(textureName, "./data/planetfile" + std::to_string(i) + ".ppm");
-    // }
-
     for (int i = 0; i < NUM_PLANETS; i++) {
         std::string ppm_path; 
         switch (i) { 
@@ -148,6 +141,28 @@ void MyGLCanvas::initShaders() {
     myShaderManager->addShaderProgram("proceduralPlanet", "shaders/330/proceduralPlanet.vert", "shaders/330/proceduralPlanet.frag");
     createIcosphereVAO(5);
 }
+
+void MyGLCanvas::loadShaders() {
+    myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
+	myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
+
+    myShaderManager->addShaderProgram("planetShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
+    
+    for (int i = 0; i < NUM_PLANETS; i++) {
+        planets[i]->buildArrays();
+        planets[i]->bindVBO(myShaderManager->getShaderProgram("planetShaders")->programID);
+    }
+
+	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
+	myEnvironmentPLY->bindVBO(myShaderManager->getShaderProgram("environmentShaders")->programID);
+
+    myShaderManager->addShaderProgram("planeShaders", "shaders/330/plane.vert", "shaders/330/plane.frag", "shaders/330/plane-geo.glsl");
+    createPlane(myShaderManager->getShaderProgram("planeShaders")->programID);
+
+    myShaderManager->addShaderProgram("proceduralPlanet", "shaders/330/proceduralPlanet.vert", "shaders/330/proceduralPlanet.frag");
+    createIcosphereVAO(5);
+}
+
 struct Vertex {
     float position[3];
     float normal[3];
@@ -629,11 +644,13 @@ void MyGLCanvas::resize(int x, int y, int w, int h) {
 void MyGLCanvas::reloadShaders() {
 	myShaderManager->resetShaders();
 
-	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
-	myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
+	// myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
+	// myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
 
-	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
-	myEnvironmentPLY->bindVBO(myShaderManager->getShaderProgram("environmentShaders")->programID);
+	// myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
+	// myEnvironmentPLY->bindVBO(myShaderManager->getShaderProgram("environmentShaders")->programID);
+
+    loadShaders(); 
 
 	invalidate();
 }
