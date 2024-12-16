@@ -426,7 +426,15 @@ int MyGLCanvas::handle(int e) {
 	case FL_PUSH:
 	case FL_RELEASE:
 	case FL_KEYUP: 
-        printf("keyboard event: key pressed: %c\n", Fl::event_key()); break;
+        printf("keyboard event: key pressed: %c\n", Fl::event_key()); 
+        switch (Fl::event_key()) {
+            case 'w': eyePosition.y += 0.05f;  break;
+            case 'a': eyePosition.x += 0.05f; break;
+            case 's': eyePosition.y -= 0.05f;  break;
+            case 'd': eyePosition.x -= 0.05f; break;
+		}
+		updateCamera(w(), h());
+        break;
 	case FL_MOUSEWHEEL:
         if (Fl::event_dy() > 0) {
             // Scrolling up

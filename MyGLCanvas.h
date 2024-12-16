@@ -71,7 +71,6 @@ private:
     // saving the PLY and PLL path for each planet
     std::vector<string> planetPLYFilenames;
     std::vector<string> planetTextureFilenames;
-	
 
     float orbitAngle; 
     int NUM_PLANETS;
