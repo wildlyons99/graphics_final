@@ -14,6 +14,7 @@ public:
 
 	unsigned int vertexShaderID;
 	unsigned int fragmentShaderID;
+    unsigned int geometryShaderID;
 };
 
 

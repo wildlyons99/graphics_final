@@ -133,7 +133,7 @@ Desc:	Currently we are working with vertex and fragment shaders
 Precondition: 
 Postcondition:
 =============================================== */ 
-void ShaderManager::addShaderProgram(const char* programName, const char* vertexShaderName, const char* fragmentShaderName){
+void ShaderManager::addShaderProgram(const char* programName, const char* vertexShaderName, const char* fragmentShaderName, const char* geometryShaderName){
 
 	ShaderProgram* program = new ShaderProgram();
 
@@ -153,11 +153,19 @@ void ShaderManager::addShaderProgram(const char* programName, const char* vertex
 	loadFile(fragmentShaderName,source);
 	// Compile our fragment shader
 	program->fragmentShaderID = loadShader(source, GL_FRAGMENT_SHADER);
+    if (geometryShaderName != NULL) {
+        source = "";
+        loadFile(geometryShaderName, source);
+        program->geometryShaderID = loadShader(source, GL_GEOMETRY_SHADER);
+    }
 
 	// Now that we've compiled the actual shaders, we add them to our program.
 	// We can create as many programs as we want and then switch between them.
 	program->programID = glCreateProgram();
 	glAttachShader(program->programID, program->vertexShaderID);
+    if (geometryShaderName != NULL) {
+        glAttachShader(program->programID, program->geometryShaderID);
+    }
 	glAttachShader(program->programID, program->fragmentShaderID);
 
 	// Finally we link them, this is the same as the linking process for C++

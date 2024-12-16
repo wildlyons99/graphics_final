@@ -37,7 +37,8 @@ class ShaderManager{
 
 	unsigned int loadShader(string& source, unsigned int mode);
 
-	void addShaderProgram(const char* programName, const char* vertexShaderName, const char* fragmentShaderName);
+	void addShaderProgram(const char* programName, const char* vertexShaderName, const char* fragmentShaderName,
+	            const char* geometryShaderName = NULL);
 
 	ShaderProgram* getShaderProgram(std::string name);
 

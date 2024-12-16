@@ -2,42 +2,57 @@
 
 layout(location = 0) in vec3 aPosition;  // Vertex position
 layout(location = 1) in vec3 aNormal;    // Vertex normal
+layout(location = 2) in vec2 aTexCoord;  // Texture coordinates
 
 uniform mat4 myModelMatrix;        // Model transformation matrix
 uniform mat4 myViewMatrix;         // View transformation matrix
 uniform mat4 myPerspectiveMatrix;   // Projection matrix
 uniform float myTime;               // Time
 
-out vec3 vNormal;           // Pass normal to fragment shader
-out vec3 vWorldPos;         // Pass world position to fragment shader
+uniform sampler2D noiseTexture;
+uniform sampler2D colorTexture;
+
+out vec3 color;
+out vec3 myNormal;
+
 
 float genHeight(float x, float z) {
-    return 0.1 * sin((x + myTime) * 10) * sin((z + myTime) * 10);
+    // Generate a height value based on the x and z position from a noise texture
+    // Use the time as a bias to move around the noise texture
+    
+    vec2 uv = vec2(aTexCoord.x + 0.1 * myTime, aTexCoord.y + 0.1 * myTime); 
+    vec3 tex = texture(noiseTexture, uv).xyz;
+    float height = tex.r;
+    
+    return  height;
 }
 void main() {
     // randomly move vertex up
     vec3 newPosition = aPosition;
-    newPosition.y -= 1;
-    newPosition.y += genHeight(aPosition.x, aPosition.z);
-    // calculate the new normal by generating close points and taking the cross product
-    float epsilon = 0.00001;
-    vec3 dx = vec3(epsilon, 0, 0);
-    vec3 dz = vec3(0, 0, epsilon);
+    
+    float height = genHeight(aPosition.x, aPosition.z);
+    float scale = 5;
+    if (height < 0.5) {
+        newPosition.y += scale * 0.5;
+    }
+    else {
+        newPosition.y += scale * height;
+    }
+    
+//    if (newPosition.y < 1.25) {
+//        newPosition.y = 1.25;
+//    }
+    newPosition.y -= 4.0;
+    color = texture(colorTexture, vec2(height - 0.17, 0.5)).xyz;
+    float epsilon = 0.01;
     float heightX1 = genHeight(aPosition.x + epsilon, aPosition.z);
     float heightX2 = genHeight(aPosition.x - epsilon, aPosition.z);
     float heightZ1 = genHeight(aPosition.x, aPosition.z + epsilon);
     float heightZ2 = genHeight(aPosition.x, aPosition.z - epsilon);
     vec3 tangentX = vec3(2 * epsilon, heightX1 - heightX2, 0);
     vec3 tangentZ = vec3(0, heightZ1 - heightZ2, 2 * epsilon);
-    vec3 newNormal = -normalize(cross(tangentX, tangentZ));
-    
-    // Transform the vertex position to world space
-    vec4 worldPos = myModelMatrix * vec4(newPosition, 1.0);
-    vWorldPos = worldPos.xyz;
-
-    // Transform the normal (ignore translation)
-    vNormal = normalize(mat3(transpose(inverse(myModelMatrix))) * newNormal);
-
-    // Transform to clip space
-    gl_Position = myPerspectiveMatrix * myViewMatrix * worldPos;
+    myNormal = normalize(mat3(transpose(inverse(myModelMatrix))) * -normalize(cross(tangentX, tangentZ)));
+//    myNormal = normalize(mat3(transpose(inverse(myModelMatrix))) * aNormal);
+    //    myNormal =  normalize(mat3(transpose(inverse(myModelMatrix))) * normalize(vec3(-dx, 2.0, -dz)));
+    gl_Position = vec4(newPosition, 1);
 }
