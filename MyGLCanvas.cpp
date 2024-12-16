@@ -404,7 +404,11 @@ void MyGLCanvas::updateCamera(int width, int height) {
 */
 glm::vec3 MyGLCanvas::generateRay(int pixelX, int pixelY) {
     glm::vec3 cameraRayDir = {-1.0f + 2.0f * pixelX / w() , 1.0f - 2.0f * pixelY / h(), -1.0f};
-	glm::vec3 worldRayDir = glm::inverse(perspectiveMatrix) * glm::inverse(viewMatrix) * glm::vec4(cameraRayDir, 1.0f);
+    glm::vec4 viewRay = glm::inverse(perspectiveMatrix) * glm::vec4(cameraRayDir, 1.0f);
+    viewRay.z = -1.0f;
+    viewRay.w = 0.0f;
+	glm::vec3 worldRayDir = glm::inverse(viewMatrix) * viewRay;
+	// glm::vec3 worldRayDir = glm::inverse(viewMatrix) * glm::inverse(perspectiveMatrix) * glm::vec4(cameraRayDir, 1.0f);
 	worldRayDir = glm::normalize(worldRayDir);
 
     printf("worldRayDir: %f %f %f\n", worldRayDir.x, worldRayDir.y, worldRayDir.z);
