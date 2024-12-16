@@ -280,7 +280,7 @@ void MyGLCanvas::drawScene() {
 	glUniform1i(glGetUniformLocation(objProgramId, "useDiffuse"), useDiffuse ? 1 : 0);
 	glUniform1f(glGetUniformLocation(objProgramId, "textureBlend"), textureBlend);
 	glm::mat4 inverseViewMatrix = glm::inverse(viewMatrix);
-	glm::vec3 cameraPosition = glm::vec3(inverseViewMatrix[3]);
+	cameraPosition = glm::vec3(inverseViewMatrix[3]);
 	glUniform3fv(glGetUniformLocation(objProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
 	glUniform3fv(glGetUniformLocation(objProgramId, "cameraPos"), 1, glm::value_ptr(cameraPosition));
 	glUniformMatrix4fv(glGetUniformLocation(objProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
@@ -481,7 +481,8 @@ int MyGLCanvas::handle(int e) {
             closestObjID = -1;
             for (int i = 0; i < NUM_PLANETS; i++) {
                 glm::mat4 currPlanetMatrix = planetMatrices[i];
-                float currIntersect = clickIntersect(eyePosition, generateRay(mouseX, mouseY), currPlanetMatrix);
+                float currIntersect = clickIntersect(cameraPosition, generateRay(mouseX, mouseY), currPlanetMatrix);
+                printf("eye pos: %f %f %f\n", cameraPosition.x, cameraPosition.y, cameraPosition.z);
                 if (currIntersect != -1.0) {
                     printf("hit!\n");
                     if (currIntersect < t) {

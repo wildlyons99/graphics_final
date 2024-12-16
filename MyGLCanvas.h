@@ -30,6 +30,7 @@ public:
 	glm::vec3 lookatPoint;
 	glm::vec3 lightPos;
 	glm::vec3 rotWorldVec;
+    glm::vec3 cameraPosition;
 
 	int useDiffuse;
 	float lightAngle; //used to control where the light is coming from
