@@ -295,10 +295,6 @@ void MyGLCanvas::drawScene() {
 
 
     // Draw the planets
-    
-    // Increment orbitAngle somewhere outside this function or here
-    // orbitAngle += 0.001f; 
-
     unsigned int planetProgramId = myShaderManager->getShaderProgram("planetShaders")->programID;
     glUseProgram(planetProgramId);
     
@@ -479,6 +475,12 @@ int MyGLCanvas::handle(int e) {
     int closestObjID;
 	switch (e) {
         case FL_DRAG:
+            mouseX = (int)Fl::event_x();
+            for (int i = 0; i < NUM_PLANETS; i++) {
+                if (planetOrbitPaused[i]) {
+                    planetOrbitAngle[i] += ((mouseLastXPos - mouseX) * 0.0001f);
+                }
+            }
             break;
         case FL_MOVE:
             break;
@@ -499,6 +501,7 @@ int MyGLCanvas::handle(int e) {
             }
             if (closestObjID != -1) { // If a planet is clicked, pause that planet's orbit
                 planetOrbitPaused[closestObjID] = true;
+                mouseLastXPos = mouseX;
             }
             
             return (1);

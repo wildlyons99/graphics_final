@@ -82,6 +82,7 @@ private:
 
     float initialOrbitAngle; 
     bool orbitPaused;
+    float mouseLastXPos;
     int NUM_PLANETS;
 
 	glm::mat4 perspectiveMatrix;
