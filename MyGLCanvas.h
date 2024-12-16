@@ -54,8 +54,11 @@ private:
 	void initShaders();
 
     void createPlane(unsigned int programID);
+    void createIcosphereVAO(int recursionLevel);
     unsigned int planeVAO;
     unsigned int planevertices;
+    unsigned int icosphereVAO;
+    unsigned int icosphereVertices;
 
     int handle(int);
 	void resize(int x, int y, int w, int h);
