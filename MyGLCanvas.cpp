@@ -25,11 +25,12 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	textureBlend = 0.0f;
 
     initialOrbitAngle = 0.0f;
-    orbitPaused = false;
     NUM_PLANETS = 3; 
     for (int i = 0; i < NUM_PLANETS; i++) {
         planetOrbitAngle.insert(planetOrbitAngle.begin() + i, initialOrbitAngle);
         planetOrbitPaused.insert(planetOrbitPaused.begin() + i, false);
+        planetPosition.insert(planetPosition.begin() + i, glm::vec3(0.0f));
+        planetSize.insert(planetSize.begin() + i, scaleFactor);
     }
 
 	useDiffuse = false;
@@ -326,24 +327,30 @@ void MyGLCanvas::drawScene() {
         
         // Eliptical orbits? 
         // Calculate elliptical orbit parameters
-        float angle = planetOrbitAngle[i] + i * 1.0f; // Offset angle for each planet
-        float radiusX = 2.0f + i * 0.5f;     // X-axis semi-major radius
-        float radiusZ = 1.5f + i * 0.5f;     // Z-axis semi-minor radius
+        float angle, radiusX, radiusZ, x, y, z, maxY;
+        if (!planetOrbitPaused[i]) {
+            angle = planetOrbitAngle[i] + i * 1.0f; // Offset angle for each planet
+            radiusX = 2.0f + i * 0.5f;     // X-axis semi-major radius
+            radiusZ = 1.5f + i * 0.5f;     // Z-axis semi-minor radius
 
-        // Calculate x, y, z positions
-        float x = radiusX * cos(angle); // Elliptical x-position
-        float z = radiusZ * sin(angle); // Elliptical z-position
+            // Calculate x, y, z positions
+            x = radiusX * cos(angle); // Elliptical x-position
+            z = radiusZ * sin(angle); // Elliptical z-position
 
-        // Add y-axis oscillation up to 50% of the orbit height
-        float maxY = 0.5f * radiusX; // Max height of oscillation
-        float y = maxY * sin(angle); // Oscillation along y-axis
+            // Add y-axis oscillation up to 50% of the orbit height
+            maxY = 0.5f * radiusX; // Max height of oscillation
+            y = maxY * sin(angle); // Oscillation along y-axis
+            // Translate the planet to its elliptical orbit position
+            planetPosition[i] = glm::vec3(x, y, z);
+        }
 
-        // Translate the planet to its elliptical orbit position
-        planetModelMatrix = glm::translate(planetModelMatrix, glm::vec3(x, y, z));
+        planetModelMatrix = glm::translate(planetModelMatrix, planetPosition[i]);
 
 
         // Scale the planets down by a factor of 4
-        planetModelMatrix = glm::scale(planetModelMatrix, glm::vec3(0.75f * (i+1)));
+        float planetScale = 0.75f * (i+1);
+        planetSize[i] = planetScale;
+        planetModelMatrix = glm::scale(planetModelMatrix, glm::vec3(planetSize[i]));
         planetMatrices.insert(planetMatrices.begin() + i, planetModelMatrix);
 
         // Set the model matrix for each planet
@@ -416,7 +423,11 @@ glm::vec3 MyGLCanvas::generateRay(int pixelX, int pixelY) {
 	return worldRayDir;
 }
 
-float MyGLCanvas::clickIntersect (glm::vec3 eyePointP, glm::vec3 rayV, glm::mat4 objToWorld) {
+glm::vec3 MyGLCanvas::getIsectPointWorldCoord(glm::vec3 eye, glm::vec3 ray, float t) {
+	return eye + ray * t;
+}
+
+float MyGLCanvas::intersect (glm::vec3 eyePointP, glm::vec3 rayV, glm::mat4 objToWorld) {
     glm::mat4 worldToObj = glm::inverse(objToWorld);
 	glm::vec3 eyePObj = glm::vec3(worldToObj * glm::vec4(eyePointP, 1.0f));
 	glm::vec3 rayObj = glm::vec3(worldToObj * glm::vec4(rayV, 0.0f));
@@ -473,12 +484,23 @@ int MyGLCanvas::handle(int e) {
     int mouseY;
     float t;
     int closestObjID;
+    // glm::vec3 newPosition;
+    glm::vec3 rayV;
 	switch (e) {
         case FL_DRAG:
             mouseX = (int)Fl::event_x();
+            mouseY = (int)Fl::event_y();
             for (int i = 0; i < NUM_PLANETS; i++) {
-                if (planetOrbitPaused[i]) {
-                    planetOrbitAngle[i] += ((mouseLastXPos - mouseX) * 0.0001f);
+                if (planetOrbitPaused[i]) { // drag planet
+                    glm::vec3 eyePointP = cameraPosition;
+                    glm::vec3 newRayV = generateRay(mouseX, mouseY);
+                    glm::vec3 mousePosChange = newRayV - oldRayV;
+                    glm::vec3 eyeToOldPlanet = glm::normalize(planetPosition[i] - eyePointP);
+                    glm::vec3 eyeToNewPlanet = glm::normalize(eyeToOldPlanet + mousePosChange);
+                    glm::vec3 newPlanetPos = getIsectPointWorldCoord(eyePointP, eyeToNewPlanet, oldT);
+
+                    planetPosition[i] = newPlanetPos;
+                    oldRayV = newRayV;
                 }
             }
             break;
@@ -487,11 +509,12 @@ int MyGLCanvas::handle(int e) {
         case FL_PUSH:
             mouseX = (int)Fl::event_x();
             mouseY = (int)Fl::event_y();
+            rayV = generateRay(mouseX, mouseY);
             t = std::numeric_limits<float>::max();
             closestObjID = -1;
             for (int i = 0; i < NUM_PLANETS; i++) { // upon click, find closest planet that was clicked
                 glm::mat4 currPlanetMatrix = planetMatrices[i];
-                float currIntersect = clickIntersect(cameraPosition, generateRay(mouseX, mouseY), currPlanetMatrix);
+                float currIntersect = intersect(cameraPosition, rayV, currPlanetMatrix);
                 if (currIntersect != -1.0) {
                     if (currIntersect < t) {
                         t = currIntersect;
@@ -501,7 +524,8 @@ int MyGLCanvas::handle(int e) {
             }
             if (closestObjID != -1) { // If a planet is clicked, pause that planet's orbit
                 planetOrbitPaused[closestObjID] = true;
-                mouseLastXPos = mouseX;
+                oldRayV = rayV;
+                oldT = glm::length(planetPosition[closestObjID] - cameraPosition);
             }
             
             return (1);

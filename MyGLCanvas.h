@@ -62,8 +62,9 @@ private:
 	void resize(int x, int y, int w, int h);
 	void updateCamera(int width, int height);
 
-    float clickIntersect(glm::vec3 eyePointP, glm::vec3 rayV, glm::mat4 objToWorld);
+    float intersect(glm::vec3 eyePointP, glm::vec3 rayV, glm::mat4 objToWorld);
     glm::vec3 generateRay(int pixelX, int pixelY);
+    glm::vec3 getIsectPointWorldCoord(glm::vec3 eye, glm::vec3 ray, float t);
 
 	TextureManager* myTextureManager;
 	ShaderManager* myShaderManager;
@@ -74,6 +75,8 @@ private:
     std::vector<glm::mat4> planetMatrices; 
     std::vector<float> planetOrbitAngle;
     std::vector<bool> planetOrbitPaused;
+    std::vector<glm::vec3> planetPosition;
+    std::vector<float> planetSize;
 
     // saving the PLY and PLL path for each planet
     std::vector<string> planetPLYFilenames;
@@ -82,8 +85,10 @@ private:
 
     float initialOrbitAngle; 
     bool orbitPaused;
-    float mouseLastXPos;
+    float oldT;
     int NUM_PLANETS;
+
+    glm::vec3 oldRayV;
 
 	glm::mat4 perspectiveMatrix;
     glm::mat4 viewMatrix;
