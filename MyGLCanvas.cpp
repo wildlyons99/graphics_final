@@ -341,7 +341,7 @@ void MyGLCanvas::drawScene() {
 
         // Scale the planets down by a factor of 4
         planetModelMatrix = glm::scale(planetModelMatrix, glm::vec3(0.75f * (i+1)));
-        planetMatrices.push_back(planetModelMatrix);
+        planetMatrices.insert(planetMatrices.begin() + i, planetModelMatrix);
 
         // Set the model matrix for each planet
         glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(planetModelMatrix));
@@ -417,9 +417,6 @@ float MyGLCanvas::clickIntersect (glm::vec3 eyePointP, glm::vec3 rayV, glm::mat4
 	glm::vec3 eyePObj = glm::vec3(worldToObj * glm::vec4(eyePointP, 1.0f));
 	glm::vec3 rayObj = glm::vec3(worldToObj * glm::vec4(rayV, 0.0f));
 
-    // printf("eye: %f %f %f\n", eyePObj.x, eyePObj.y, eyePObj.z);
-    // printf("obj: %f %f %f\n", rayObj.x, rayObj.y, rayObj.z);
-
 	float A = glm::dot(rayObj, rayObj);
 	float B = 2.0 * glm::dot(rayObj, eyePObj);
 	float C = glm::dot(eyePObj, eyePObj) - 0.25;
@@ -482,10 +479,9 @@ int MyGLCanvas::handle(int e) {
             mouseY = (int)Fl::event_y();
             t = std::numeric_limits<float>::max();
             closestObjID = -1;
-            for (int i = 0; i < NUM_PLANETS; i++) { // TODO get object IDs
+            for (int i = 0; i < NUM_PLANETS; i++) {
                 glm::mat4 currPlanetMatrix = planetMatrices[i];
-                // printf("\n" currPlanetMatrix.x.x);
-                float currIntersect = clickIntersect(eyePosition, generateRay(mouseX, mouseY), currPlanetMatrix); // TODO get transformMatrix
+                float currIntersect = clickIntersect(eyePosition, generateRay(mouseX, mouseY), currPlanetMatrix);
                 if (currIntersect != -1.0) {
                     printf("hit!\n");
                     if (currIntersect < t) {
