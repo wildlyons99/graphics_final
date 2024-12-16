@@ -466,7 +466,7 @@ void MyGLCanvas::drawScene() {
         glUniform1i(glGetUniformLocation(planetProgramId, "environMap"), 2 + i);
         glUniform1i(glGetUniformLocation(planetProgramId, "objectTexture"), 1);
        
-        glm::mat4 planetModelMatrix = glm::mat4(1.0f);
+        glm::mat4 planetModelMatrix = modelMatrix;
         
         // Calculate elliptical orbit parameters
         float angle = orbitAngle + i * 1.0f; // Offset angle for each planet
@@ -487,6 +487,7 @@ void MyGLCanvas::drawScene() {
 
         // Scale the planets down 
         planetModelMatrix = glm::scale(planetModelMatrix, glm::vec3(0.75f * (i+1)));
+        // modelMatrix = glm::scale(modelMatrix, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
 
         // Set the model matrix for each planet
         glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(planetModelMatrix));
@@ -606,9 +607,11 @@ int MyGLCanvas::handle(int e) {
 		updateCamera(w(), h());
         break;
 	case FL_MOUSEWHEEL:
+        float MAX_SCALE = 2; 
         if (Fl::event_dy() > 0) {
             // Scrolling up
-            scaleFactor += 0.1f; 
+            // scaleFactor += 0.1f; 
+            scaleFactor = (scaleFactor >= MAX_SCALE) ? MAX_SCALE : scaleFactor + 0.1f; 
         } else {
             // Scrolling down
             scaleFactor = (scaleFactor <= 0.1f) ? 0.1f : scaleFactor - 0.1f; 
