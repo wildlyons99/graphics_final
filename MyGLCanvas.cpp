@@ -24,9 +24,13 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	lightAngle = 0.0f;
 	textureBlend = 0.0f;
 
-    orbitAngle = 0.0f;
+    initialOrbitAngle = 0.0f;
     orbitPaused = false;
     NUM_PLANETS = 3; 
+    for (int i = 0; i < NUM_PLANETS; i++) {
+        planetOrbitAngle.insert(planetOrbitAngle.begin() + i, initialOrbitAngle);
+        planetOrbitPaused.insert(planetOrbitPaused.begin() + i, false);
+    }
 
 	useDiffuse = false;
 
@@ -293,9 +297,7 @@ void MyGLCanvas::drawScene() {
     // Draw the planets
     
     // Increment orbitAngle somewhere outside this function or here
-    if (!orbitPaused) {
-        orbitAngle += 0.001f; 
-    }
+    // orbitAngle += 0.001f; 
 
     unsigned int planetProgramId = myShaderManager->getShaderProgram("planetShaders")->programID;
     glUseProgram(planetProgramId);
@@ -305,7 +307,9 @@ void MyGLCanvas::drawScene() {
         glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
 
     for (int i = 0; i < NUM_PLANETS; i++) {
-        
+        if (!planetOrbitPaused[i]) {
+            planetOrbitAngle[i] += 0.001f;
+        }
 
         // load the planetMap shader defined above into the 2nd texture index
         glActiveTexture(GL_TEXTURE0 + 2 + i);
@@ -326,7 +330,7 @@ void MyGLCanvas::drawScene() {
         
         // Eliptical orbits? 
         // Calculate elliptical orbit parameters
-        float angle = orbitAngle + i * 1.0f; // Offset angle for each planet
+        float angle = planetOrbitAngle[i] + i * 1.0f; // Offset angle for each planet
         float radiusX = 2.0f + i * 0.5f;     // X-axis semi-major radius
         float radiusZ = 1.5f + i * 0.5f;     // Z-axis semi-minor radius
 
@@ -413,8 +417,6 @@ glm::vec3 MyGLCanvas::generateRay(int pixelX, int pixelY) {
 	glm::vec3 worldRayDir = glm::inverse(viewMatrix) * viewRay;
 	worldRayDir = glm::normalize(worldRayDir);
 
-    // printf("worldRayDir: %f %f %f\n", worldRayDir.x, worldRayDir.y, worldRayDir.z);
-    // printf("cameraRayDir: %f %f %f\n", cameraRayDir.x, cameraRayDir.y, cameraRayDir.z);
 	return worldRayDir;
 }
 
@@ -485,28 +487,25 @@ int MyGLCanvas::handle(int e) {
             mouseY = (int)Fl::event_y();
             t = std::numeric_limits<float>::max();
             closestObjID = -1;
-            for (int i = 0; i < NUM_PLANETS; i++) {
+            for (int i = 0; i < NUM_PLANETS; i++) { // upon click, find closest planet that was clicked
                 glm::mat4 currPlanetMatrix = planetMatrices[i];
                 float currIntersect = clickIntersect(cameraPosition, generateRay(mouseX, mouseY), currPlanetMatrix);
                 if (currIntersect != -1.0) {
-                    printf("hit!\n");
                     if (currIntersect < t) {
                         t = currIntersect;
                         closestObjID = i;
                     }
                 }
             }
-            if (closestObjID != -1) {
-                printf("ID of closest object clicked: %d\n", closestObjID);
-                orbitPaused = true;
-                // zoomIn(closestObjID); // TODO zoomIn function
-            } else {
-                printf("miss!\n");
+            if (closestObjID != -1) { // If a planet is clicked, pause that planet's orbit
+                planetOrbitPaused[closestObjID] = true;
             }
             
             return (1);
         case FL_RELEASE:
-            orbitPaused = false;
+            for (int i = 0; i < NUM_PLANETS; i++) { // resume all orbits when click is released
+                planetOrbitPaused[i] = false;
+            }
             break;
         case FL_KEYUP:
             break;

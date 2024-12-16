@@ -72,13 +72,15 @@ private:
 
     std::vector<ply *> planets; 
     std::vector<glm::mat4> planetMatrices; 
+    std::vector<float> planetOrbitAngle;
+    std::vector<bool> planetOrbitPaused;
 
     // saving the PLY and PLL path for each planet
     std::vector<string> planetPLYFilenames;
     std::vector<string> planetTextureFilenames;
 	
 
-    float orbitAngle; 
+    float initialOrbitAngle; 
     bool orbitPaused;
     int NUM_PLANETS;
 
