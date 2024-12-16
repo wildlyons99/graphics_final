@@ -96,6 +96,7 @@ void MyGLCanvas::initShaders() {
 	myTextureManager->loadTexture("environMap", "./data/sphere-map-market.ppm");
 	myTextureManager->loadTexture("objectTexture", "./data/brick.ppm");
     myTextureManager->loadTexture("noise", "./data/simpleNoise.ppm");
+    myTextureManager->loadTexture("colorMap", "./data/colorMap.ppm");
     
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
@@ -142,8 +143,8 @@ void MyGLCanvas::initShaders() {
 }
 
 void MyGLCanvas::createPlane(unsigned int programID) {
-    int rows = 25;
-    int cols = 25;
+    int rows = 250;
+    int cols = 250;
     float length = 3.0f;
     float spacing = length / cols;
 
@@ -274,6 +275,8 @@ void MyGLCanvas::drawScene() {
 	glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("objectTexture"));
     glActiveTexture(GL_TEXTURE11);
     glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("noise"));
+    glActiveTexture(GL_TEXTURE12);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("colorMap"));
 
 	//first draw the object sphere
 	// unsigned int objProgramId =
@@ -391,6 +394,8 @@ void MyGLCanvas::drawScene() {
     myTime += 0.01f;
     // pass in the noise texture
     glUniform1i(glGetUniformLocation(planeProgramId, "noiseTexture"), 11);
+    // pass in the color map
+    glUniform1i(glGetUniformLocation(planeProgramId, "colorTexture"), 12);
     glBindVertexArray(planeVAO);
     
     glDrawElements(GL_TRIANGLES, planevertices, GL_UNSIGNED_INT, 0);

@@ -5,6 +5,7 @@ uniform vec3 cameraPosition;
 
 in vec3 vNormal;
 in vec3 vWorldPos;
+in vec3 vColor;
 
 out vec4 fragColor;
 
@@ -13,5 +14,5 @@ void main() {
     vec3 lightDir = normalize(lightPos - vWorldPos);
     float diff = max(dot(vNormal, lightDir), 0.0);
     vec3 diffuse = diff * vec3(1.0);
-    fragColor = vec4(diffuse, 1.0);
+    fragColor = vec4(diff * vColor, 1.0);
 }
