@@ -742,10 +742,6 @@ void MyGLCanvas::updateCamera(int width, int height) {
 	perspectiveMatrix = glm::perspective(TO_RADIANS(viewAngle), xy_aspect, clipNear, clipFar);
 }
 
-/* The generateRay function accepts the mouse click coordinates
-	(in x and y, which will be integers between 0 and screen width and 0 and screen height respectively).
-   The function returns the ray
-*/
 glm::vec3 MyGLCanvas::generateRay(int pixelX, int pixelY) {
     glm::vec3 cameraRayDir = {-1.0f + 2.0f * pixelX / w() , 1.0f - 2.0f * pixelY / h(), -1.0f};
     glm::vec4 viewRay = glm::inverse(perspectiveMatrix) * glm::vec4(cameraRayDir, 1.0f);
