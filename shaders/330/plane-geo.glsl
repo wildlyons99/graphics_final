@@ -7,10 +7,14 @@ uniform mat4 myViewMatrix;         // View transformation matrix
 uniform mat4 myPerspectiveMatrix;   // Projection matrix
 in vec3 color[];
 in vec3 myNormal[];
+in vec2 myTexCoord[];
+in vec3 myObjectPos[];
 
 out vec3 vNormal;
 out vec3 vWorldPos;
 out vec3 vColor;
+out vec2 vTexCoord;
+out vec3 vObjectPos;
 void main() {
     // Compute two edges of the triangle
     vec3 edge1 = gl_in[1].gl_Position.xyz - gl_in[0].gl_Position.xyz;
@@ -25,6 +29,8 @@ void main() {
         vWorldPos = (myModelMatrix * gl_in[i].gl_Position).xyz;
         gl_Position = myPerspectiveMatrix * myViewMatrix * myModelMatrix * gl_in[i].gl_Position;
         vColor = color[i];
+        vTexCoord = myTexCoord[i];
+        vObjectPos = myObjectPos[i];
         EmitVertex();
     }
     EndPrimitive();

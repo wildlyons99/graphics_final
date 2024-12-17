@@ -35,6 +35,7 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	myShaderManager = new ShaderManager();
 	myObjectPLY = new ply("./data/sphere.ply");
 	myEnvironmentPLY = new ply("./data/sphere.ply");
+    myBuddahPLY = new ply("./data/happy.ply");
 
 
     // Potential sets of ply and ppm files
@@ -86,6 +87,7 @@ MyGLCanvas::~MyGLCanvas() {
 	delete myShaderManager;
 	delete myObjectPLY;
 	delete myEnvironmentPLY;
+    delete myBuddahPLY;
 
     for (int i = 0; i < NUM_PLANETS; i++) {
         delete planets[i]; 
@@ -97,7 +99,8 @@ void MyGLCanvas::initShaders() {
 	myTextureManager->loadTexture("objectTexture", "./data/brick.ppm");
     myTextureManager->loadTexture("noise", "./data/64noise3octaves.ppm");
     myTextureManager->loadTexture("colorMap", "./data/colorMap.ppm");
-    myTextureManager->loadTexture("planetNoise", "./data/256noise3octaves.ppm");
+    myTextureManager->loadTexture("planetNoise", "./data/simpleNoise.ppm");
+    myTextureManager->loadTexture("waterNormals", "./data/waterNormals.ppm");
     
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
@@ -144,11 +147,19 @@ void MyGLCanvas::initShaders() {
 
     myShaderManager->addShaderProgram("proceduralPlanet", "shaders/330/proceduralPlanet.vert", "shaders/330/proceduralPlanet.frag");
     createIcosphereVAO(5);
+
+    myShaderManager->addShaderProgram("buddahShaders", "shaders/330/buddah.vert", "shaders/330/buddah.frag");
+    myBuddahPLY->buildArrays();
+    myBuddahPLY->bindVBO(myShaderManager->getShaderProgram("buddahShaders")->programID);
+
+    
 }
 struct Vertex {
-    float position[3];
-    float normal[3];
-    float uv[2];
+    glm::vec3 position;  // Vertex position
+    glm::vec3 normal;    // Vertex normal
+    glm::vec2 uv;        // Texture coordinates
+    glm::vec3 tangent;   // Tangent vector
+    glm::vec3 bitangent; // Bitangent vector
 };
 
 
@@ -222,8 +233,49 @@ void generateIcosphere(int recursionLevel, std::vector<Vertex>& vertices, std::v
         vertex.normal[2] = pos.z;
         vertex.uv[0] = 0.5f + std::atan2(pos.z, pos.x) / (2.0f * PI);
         vertex.uv[1] = 0.5f - std::asin(pos.y) / PI;
+        vertex.tangent = glm::vec3(0.0f, 0.0f, 0.0f);
+        vertex.bitangent = glm::vec3(0.0f, 0.0f, 0.0f);
         vertices.push_back(vertex);
     }
+
+    for (size_t i = 0; i < indices.size(); i += 3) {
+        Vertex& v0 = vertices[indices[i]];
+        Vertex& v1 = vertices[indices[i + 1]];
+        Vertex& v2 = vertices[indices[i + 2]];
+
+        // Compute edge vectors and delta UVs
+        glm::vec3 edge1 = v1.position - v0.position;
+        glm::vec3 edge2 = v2.position - v0.position;
+        glm::vec2 deltaUV1 = v1.uv - v0.uv;
+        glm::vec2 deltaUV2 = v2.uv - v0.uv;
+
+        float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        glm::vec3 tangent, bitangent;
+
+        tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+        bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+        bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+        bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+        v0.tangent += tangent;
+        v1.tangent += tangent;
+        v2.tangent += tangent;
+
+        v0.bitangent += bitangent;
+        v1.bitangent += bitangent;
+        v2.bitangent += bitangent;
+    }
+
+    // Normalize the tangents and bitangents
+    for (auto& vertex : vertices) {
+        vertex.tangent = glm::normalize(vertex.tangent);
+        vertex.bitangent = glm::normalize(vertex.bitangent);
+    }
+    
 }
 
 // Create VAO for the icosphere
@@ -257,6 +309,12 @@ void MyGLCanvas::createIcosphereVAO(int recursionLevel) {
 
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
     glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
+    glEnableVertexAttribArray(3);
+
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
+    glEnableVertexAttribArray(4);
 
     glBindVertexArray(0);
 
@@ -414,11 +472,12 @@ void MyGLCanvas::drawScene() {
 	glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("objectTexture"));
     glActiveTexture(GL_TEXTURE11);
     glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("noise"));
-    glActiveTexture(GL_TEXTURE12);
-    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("colorMap"));
     glActiveTexture(GL_TEXTURE13);
     glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("planetNoise"));
-
+    glActiveTexture(GL_TEXTURE14);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("waterNormals"));
+    glActiveTexture(GL_TEXTURE18);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("colorMap"));
 	//first draw the object sphere
 	// unsigned int objProgramId =
 	// 	myShaderManager->getShaderProgram("objectShaders")->programID;
@@ -536,7 +595,7 @@ void MyGLCanvas::drawScene() {
     // pass in the noise texture
     glUniform1i(glGetUniformLocation(planeProgramId, "noiseTexture"), 11);
     // pass in the color map
-    glUniform1i(glGetUniformLocation(planeProgramId, "colorTexture"), 12);
+    glUniform1i(glGetUniformLocation(planeProgramId, "colorTexture"), 18);
     glBindVertexArray(planeVAO);
     
     glDrawElements(GL_TRIANGLES, planevertices, GL_UNSIGNED_INT, 0);
@@ -546,16 +605,27 @@ void MyGLCanvas::drawScene() {
     glUniformMatrix4fv(glGetUniformLocation(proceduralPlanetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
     glUniformMatrix4fv(glGetUniformLocation(proceduralPlanetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(modelMatrix));
     glUniformMatrix4fv(glGetUniformLocation(proceduralPlanetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
-    glUniform1f(glGetUniformLocation(planeProgramId, "myTime"), myTime);
+    glUniform1f(glGetUniformLocation(proceduralPlanetProgramId, "myTime"), myTime);
     glUniform3fv(glGetUniformLocation(proceduralPlanetProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
     glUniform3fv(glGetUniformLocation(proceduralPlanetProgramId, "cameraPos"), 1, glm::value_ptr(cameraPosition));
-    glUniform1i(glGetUniformLocation(planeProgramId, "noiseTexture"), 13);
-    // pass in the color map
-    glUniform1i(glGetUniformLocation(planeProgramId, "colorTexture"), 12);
-
     glUniform1f(glGetUniformLocation(proceduralPlanetProgramId, "oceanLevel"), 0.1f);
+    glUniform1i(glGetUniformLocation(proceduralPlanetProgramId, "noiseTexture"), 13);
+    glUniform1i(glGetUniformLocation(proceduralPlanetProgramId, "planeNoiseTexture"), 11);
+    glUniform1i(glGetUniformLocation(proceduralPlanetProgramId, "colorTexture"), 18);
+    glUniform1i(glGetUniformLocation(proceduralPlanetProgramId, "waterNormals"), 14);
     glBindVertexArray(icosphereVAO);
     glDrawElements(GL_TRIANGLES, icosphereVertices, GL_UNSIGNED_INT, 0);
+
+    unsigned int buddahProgramId = myShaderManager->getShaderProgram("buddahShaders")->programID;
+    glUseProgram(buddahProgramId);
+    glUniformMatrix4fv(glGetUniformLocation(buddahProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
+    glUniformMatrix4fv(glGetUniformLocation(buddahProgramId, "myModelMatrix"), 1, false, glm::value_ptr(modelMatrix));
+    glUniformMatrix4fv(glGetUniformLocation(buddahProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
+    glUniform3fv(glGetUniformLocation(buddahProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
+    glUniform3fv(glGetUniformLocation(buddahProgramId, "cameraPos"), 1, glm::value_ptr(cameraPosition));
+    glUniform1f(glGetUniformLocation(buddahProgramId, "myTime"), myTime);
+    glUniform1i(glGetUniformLocation(buddahProgramId, "noiseTexture"), 11);
+    myBuddahPLY->renderVBO(buddahProgramId);
     
 }
 

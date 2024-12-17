@@ -68,6 +68,7 @@ private:
 	ShaderManager* myShaderManager;
 	ply* myObjectPLY;
     ply* myEnvironmentPLY;
+    ply* myBuddahPLY;
 
     std::vector<ply *> planets; 
 
