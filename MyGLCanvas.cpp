@@ -27,20 +27,14 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 
     for (int i = 0; i < NUM_PLANETS; i++) {
         Planet planet = {
-            size: scaleFactor,
-            modelMatrix: glm::mat4(1.0f),
-            position: glm::vec3(1.0f + i, 2.0f + i, -1.0f - i),
-            orbitDirChange: glm::vec3(1.0f),
-            orbitPaused: false,
-            recentlyDragged: false
+            .size = scaleFactor,
+            .modelMatrix = glm::mat4(1.0f),
+            .position = glm::vec3(1.0f + i, 2.0f + i, -1.0f - i),
+            .orbitDirChange = glm::vec3(1.0f + (-1.5f * i)),
+            .orbitPaused = false,
+            .recentlyDragged = false
         };
         planets.insert(planets.begin() + i, planet);
-
-        // planetOrbitPaused.insert(planetOrbitPaused.begin() + i, false);
-        // planetRecentlyDragged.insert(planetRecentlyDragged.begin() + i, false);
-        // planetPosition.insert(planetPosition.begin() + i, glm::vec3(1.0f + i, 2.0f + i, -1.0f - i));
-        // planetDirChange.insert(planetDirChange.begin() + i, glm::normalize(glm::cross(planetPosition[i], glm::vec3(1.0f, 1.0f, 1.0f))));
-        // planetSize.insert(planetSize.begin() + i, scaleFactor);
     }
 
 	useDiffuse = false;
@@ -68,30 +62,17 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
         "./data/brick.ppm"
     };
 
-    // for (int i = 0; i < NUM_PLANETS; i++) {
-    //     // Random selection of a PLY and texture
-    //     int plyIndex = (int) glm::linearRand(0.0f, (float) availablePLY.size() + 0.9f);
-    //     int ppmIndex = (int) glm::linearRand(0.0f, (float) availablePPM.size() + 0.9f);
-
-    //     printf("Random Numbers: %d and %d\n", plyIndex, ppmIndex); 
-
-    //     planetPLYFilenames.push_back(availablePLY[plyIndex]);
-    //     planetTextureFilenames.push_back(availablePPM[ppmIndex]);
-
-    //     planets.push_back(new ply(planetPLYFilenames[i]));
-    // }
-
     // // non random planets
     for (int i = 0; i < NUM_PLANETS; i++) {
         switch (i) { 
             case 0: 
-                planetPlys.push_back(new ply("./data/milleniumFalcon.ply")); 
+                planets[i].plyModel = new ply("./data/milleniumFalcon.ply"); 
                 break; 
             case 1: 
-                planetPlys.push_back(new ply("./data/cow.ply"));
+                planets[i].plyModel = new ply("./data/cow.ply"); 
                 break; 
             case 2: 
-                planetPlys.push_back(new ply("./data/sphere.ply"));
+                planets[i].plyModel = new ply("./data/sphere.ply"); 
                 break;
         }
     }
@@ -104,7 +85,7 @@ MyGLCanvas::~MyGLCanvas() {
 	delete myEnvironmentPLY;
 
     for (int i = 0; i < NUM_PLANETS; i++) {
-        delete planetPlys[i]; 
+        delete planets[i].plyModel; 
     } 
 }
 
@@ -116,12 +97,6 @@ void MyGLCanvas::initShaders() {
 	myObjectPLY->buildArrays();
 	myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
 
-
-    // to use? 
-    // for (int i = 0; i < NUM_PLANETS; i++) {
-    //     std::string textureName = "planetMap" + std::to_string(i);
-    //     myTextureManager->loadTexture(textureName, "./data/planetfile" + std::to_string(i) + ".ppm");
-    // }
 
     for (int i = 0; i < NUM_PLANETS; i++) {
         std::string ppm_path; 
@@ -140,11 +115,10 @@ void MyGLCanvas::initShaders() {
                 break; 
         }
         myTextureManager->loadTexture("planetMap" + std::to_string(i), ppm_path); 
-        // myTextureManager->loadTexture("planetMap" + std::to_string(i), planetTextureFilenames[i]); 
 
         myShaderManager->addShaderProgram("planetShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
-        planetPlys[i]->buildArrays();
-        planetPlys[i]->bindVBO(myShaderManager->getShaderProgram("planetShaders")->programID);
+        planets[i].plyModel->buildArrays();
+        planets[i].plyModel->bindVBO(myShaderManager->getShaderProgram("planetShaders")->programID);
     }
 
 	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
@@ -363,11 +337,11 @@ void MyGLCanvas::drawScene() {
         float planetScale = 0.75f * (NUM_PLANETS - (i * 0.5f));
         planets[i].size = planetScale;
         planetModelMatrix = glm::scale(planetModelMatrix, glm::vec3(planets[i].size));
-        planetMatrices.insert(planetMatrices.begin() + i, planetModelMatrix);
+        planets[i].modelMatrix = planetModelMatrix;
 
         // Set the model matrix for each planet
         glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(planetModelMatrix));
-        planetPlys[i]->renderVBO(planetProgramId);
+        planets[i].plyModel->renderVBO(planetProgramId);
     }
 
 
@@ -491,7 +465,6 @@ int MyGLCanvas::handle(int e) {
 		}
 	}
 #endif	
-	//printf("Event was %s (%d)\n", fl_eventnames[e], e);
     int mouseX;
     int mouseY;
     float t;
@@ -527,7 +500,7 @@ int MyGLCanvas::handle(int e) {
             t = std::numeric_limits<float>::max();
             closestObjID = -1;
             for (int i = 0; i < NUM_PLANETS; i++) { // upon click, find closest planet that was clicked
-                glm::mat4 currPlanetMatrix = planetMatrices[i];
+                glm::mat4 currPlanetMatrix = planets[i].modelMatrix;
                 float currIntersect = intersect(cameraPosition, rayV, currPlanetMatrix);
                 if (currIntersect != -1.0) {
                     if (currIntersect < t) {
