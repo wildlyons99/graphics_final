@@ -92,6 +92,7 @@ private:
 
 	glm::mat4 perspectiveMatrix;
     glm::mat4 viewMatrix;
+    glm::vec3 up;
 
 	bool firstTime;
 };

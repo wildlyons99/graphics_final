@@ -15,6 +15,7 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	rotVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	rotWorldVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	lightPos = eyePosition;
+    up = glm::vec3(0.0f, 0.0f, 1.0f);
     // test out noise
 
 	viewAngle = 60;
@@ -29,7 +30,7 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
     for (int i = 0; i < NUM_PLANETS; i++) {
         planetOrbitAngle.insert(planetOrbitAngle.begin() + i, initialOrbitAngle);
         planetOrbitPaused.insert(planetOrbitPaused.begin() + i, false);
-        planetPosition.insert(planetPosition.begin() + i, glm::vec3(0.0f));
+        planetPosition.insert(planetPosition.begin() + i, glm::vec3(1.0f + i, 2.0f + i, -1.0f - i));
         planetSize.insert(planetSize.begin() + i, scaleFactor);
     }
 
@@ -303,9 +304,11 @@ void MyGLCanvas::drawScene() {
      glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
         glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
 
+    float planetSpeed = 0.001f;
+
     for (int i = 0; i < NUM_PLANETS; i++) {
         if (!planetOrbitPaused[i]) {
-            planetOrbitAngle[i] += 0.001f;
+            planetOrbitAngle[i] += planetSpeed;
         }
 
         // load the planetMap shader defined above into the 2nd texture index
@@ -329,19 +332,28 @@ void MyGLCanvas::drawScene() {
         // Calculate elliptical orbit parameters
         float angle, radiusX, radiusZ, x, y, z, maxY;
         if (!planetOrbitPaused[i]) {
-            angle = planetOrbitAngle[i] + i * 1.0f; // Offset angle for each planet
-            radiusX = 2.0f + i * 0.5f;     // X-axis semi-major radius
-            radiusZ = 1.5f + i * 0.5f;     // Z-axis semi-minor radius
+            // angle = planetOrbitAngle[i] + i * 1.0f; // Offset angle for each planet
+            // radiusX = 2.0f + i * 0.5f;     // X-axis semi-major radius
+            // radiusX = glm::abs(planetPosition[i].x);     // X-axis radius
+            // radiusZ = 1.5f + i * 0.5f;     // Z-axis semi-minor radius
+            // radiusZ = glm::abs(planetPosition[i].z);     // Z-axis radius
 
             // Calculate x, y, z positions
-            x = radiusX * cos(angle); // Elliptical x-position
-            z = radiusZ * sin(angle); // Elliptical z-position
+            // x = radiusX * cos(angle); // Elliptical x-position
+            // z = radiusZ * sin(angle); // Elliptical z-position
 
             // Add y-axis oscillation up to 50% of the orbit height
-            maxY = 0.5f * radiusX; // Max height of oscillation
-            y = maxY * sin(angle); // Oscillation along y-axis
+            // maxY = 0.5f * radiusX; // Max height of oscillation
+            // y = maxY * sin(angle); // Oscillation along y-axis
             // Translate the planet to its elliptical orbit position
-            planetPosition[i] = glm::vec3(x, y, z);
+
+            glm::vec3 tangent = glm::normalize(glm::cross(up, planetPosition[i]));
+            float radius = glm::length(planetPosition[i]);
+            float speed = planetSpeed * radius;
+            glm::vec3 step = tangent * speed;
+
+            planetPosition[i] = planetPosition[i] + step;
+            // planetPosition[i] = glm::vec3(x, y, z);
         }
 
         planetModelMatrix = glm::translate(planetModelMatrix, planetPosition[i]);
