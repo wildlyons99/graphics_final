@@ -15,8 +15,6 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	rotVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	rotWorldVec = glm::vec3(0.0f, 0.0f, 0.0f);
 	lightPos = eyePosition;
-    up = glm::vec3(0.0f, 0.0f, 1.0f);
-    // test out noise
 
 	viewAngle = 60;
 	clipNear = 0.01f;
@@ -25,12 +23,13 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	lightAngle = 0.0f;
 	textureBlend = 0.0f;
 
-    initialOrbitAngle = 0.0f;
     NUM_PLANETS = 3; 
+
     for (int i = 0; i < NUM_PLANETS; i++) {
-        planetOrbitAngle.insert(planetOrbitAngle.begin() + i, initialOrbitAngle);
         planetOrbitPaused.insert(planetOrbitPaused.begin() + i, false);
+        planetRecentlyDragged.insert(planetRecentlyDragged.begin() + i, false);
         planetPosition.insert(planetPosition.begin() + i, glm::vec3(1.0f + i, 2.0f + i, -1.0f - i));
+        planetDirChange.insert(planetDirChange.begin() + i, glm::normalize(glm::cross(planetPosition[i], glm::vec3(1.0f, 1.0f, 1.0f))));
         planetSize.insert(planetSize.begin() + i, scaleFactor);
     }
 
@@ -304,13 +303,9 @@ void MyGLCanvas::drawScene() {
      glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
         glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
 
-    float planetSpeed = 0.001f;
+    float planetSpeed = 0.05f;
 
     for (int i = 0; i < NUM_PLANETS; i++) {
-        if (!planetOrbitPaused[i]) {
-            planetOrbitAngle[i] += planetSpeed;
-        }
-
         // load the planetMap shader defined above into the 2nd texture index
         glActiveTexture(GL_TEXTURE0 + 2 + i);
         glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("planetMap" + std::to_string(i)));
@@ -321,39 +316,32 @@ void MyGLCanvas::drawScene() {
        
         glm::mat4 planetModelMatrix = glm::mat4(1.0f);
 
-        // Give each planet a different orbit radius and angle offset
-        // float radius = 2.0f + i * 1.0f;        // Each planet farther out by 1 unit
-        // float angle = orbitAngle;      // Each planet shifted by i
-
-        // planetModelMatrix = glm::rotate(planetModelMatrix, angle, glm::vec3(0.0f, 1.0f, 0.0f));
-        // planetModelMatrix = glm::translate(planetModelMatrix, glm::vec3(radius, 0.0f, 0.0f))
-        
-        // Eliptical orbits? 
         // Calculate elliptical orbit parameters
-        float angle, radiusX, radiusZ, x, y, z, maxY;
         if (!planetOrbitPaused[i]) {
-            // angle = planetOrbitAngle[i] + i * 1.0f; // Offset angle for each planet
-            // radiusX = 2.0f + i * 0.5f;     // X-axis semi-major radius
-            // radiusX = glm::abs(planetPosition[i].x);     // X-axis radius
-            // radiusZ = 1.5f + i * 0.5f;     // Z-axis semi-minor radius
-            // radiusZ = glm::abs(planetPosition[i].z);     // Z-axis radius
+            glm::vec3 v = (planetPosition[i].x != 0.0f) ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
 
-            // Calculate x, y, z positions
-            // x = radiusX * cos(angle); // Elliptical x-position
-            // z = radiusZ * sin(angle); // Elliptical z-position
+            glm::vec3 t0 = glm::cross(planetPosition[i], v);
 
-            // Add y-axis oscillation up to 50% of the orbit height
-            // maxY = 0.5f * radiusX; // Max height of oscillation
-            // y = maxY * sin(angle); // Oscillation along y-axis
-            // Translate the planet to its elliptical orbit position
+            if (glm::length(t0) < 0.001f) {
+                v = glm::vec3(0, 0, 1);
+                t0 = glm::cross(planetPosition[i], v);
+            }
 
-            glm::vec3 tangent = glm::normalize(glm::cross(up, planetPosition[i]));
+            float dotDirChangeT0 = glm::dot(planetDirChange[i], t0);
+            float dotDirChangeDirChange = glm::dot(planetDirChange[i], planetDirChange[i]);
+            float lambda = (1.0f - dotDirChangeT0) / dotDirChangeDirChange;
+
+            if (planetRecentlyDragged[i]) {
+                planetDirChange[i] = glm::normalize(t0 + lambda * planetDirChange[i]);
+                planetRecentlyDragged[i] = false;
+            }
             float radius = glm::length(planetPosition[i]);
-            float speed = planetSpeed * radius;
-            glm::vec3 step = tangent * speed;
+            float speed = planetSpeed / (1.5f * radius);
+            glm::vec3 step = planetDirChange[i] * speed;
 
-            planetPosition[i] = planetPosition[i] + step;
-            // planetPosition[i] = glm::vec3(x, y, z);
+            glm::vec3 oldPlanetPos = planetPosition[i];
+            planetPosition[i] = radius * glm::normalize(oldPlanetPos + step);
+            planetDirChange[i] = glm::normalize(planetPosition[i] - oldPlanetPos);
         }
 
         planetModelMatrix = glm::translate(planetModelMatrix, planetPosition[i]);
@@ -496,7 +484,6 @@ int MyGLCanvas::handle(int e) {
     int mouseY;
     float t;
     int closestObjID;
-    // glm::vec3 newPosition;
     glm::vec3 rayV;
 	switch (e) {
         case FL_DRAG:
@@ -513,6 +500,9 @@ int MyGLCanvas::handle(int e) {
 
                     planetPosition[i] = newPlanetPos;
                     oldRayV = newRayV;
+                    glm::vec3 dirChange = glm::normalize(eyeToNewPlanet - eyeToOldPlanet);
+                    planetDirChange[i] = (glm::length(dirChange) > 0.000f) ? dirChange : planetDirChange[i];
+                    planetRecentlyDragged[i] = true;
                 }
             }
             break;

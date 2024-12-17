@@ -73,9 +73,10 @@ private:
 
     std::vector<ply *> planets; 
     std::vector<glm::mat4> planetMatrices; 
-    std::vector<float> planetOrbitAngle;
     std::vector<bool> planetOrbitPaused;
+    std::vector<bool> planetRecentlyDragged;
     std::vector<glm::vec3> planetPosition;
+    std::vector<glm::vec3> planetDirChange;
     std::vector<float> planetSize;
 
     // saving the PLY and PLL path for each planet
@@ -83,8 +84,8 @@ private:
     std::vector<string> planetTextureFilenames;
 	
 
-    float initialOrbitAngle; 
     bool orbitPaused;
+    bool recentlyDragged;
     float oldT;
     int NUM_PLANETS;
 
@@ -92,7 +93,6 @@ private:
 
 	glm::mat4 perspectiveMatrix;
     glm::mat4 viewMatrix;
-    glm::vec3 up;
 
 	bool firstTime;
 };
