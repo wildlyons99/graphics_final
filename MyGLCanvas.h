@@ -98,6 +98,7 @@ private:
 	ply* myObjectPLY;
     ply* myEnvironmentPLY;
     ply* myBuddahPLY;
+    ply* myWarpPLY;
 
     struct Planet {
         ply* plyModel;
