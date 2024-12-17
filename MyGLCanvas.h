@@ -46,8 +46,6 @@ public:
 	void loadPLY(std::string filename);
 	void loadEnvironmentTexture(std::string filename);
 	void loadObjectTexture(std::string filename);
-	void reloadShaders();
-    void loadShaders(); 
 
 private:
 	void draw();

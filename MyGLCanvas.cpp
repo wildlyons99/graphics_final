@@ -115,8 +115,9 @@ void MyGLCanvas::initShaders() {
 	myObjectPLY->buildArrays();
 	myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
 
-    myShaderManager->addShaderProgram("planetShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
+    myShaderManager->addShaderProgram("planetShaders", "shaders/330/object-vert.shader", "shaders/330/warpPlanet.frag");
     for (int i = 0; i < NUM_PLANETS; i++) {
+        // for if swicth frag shader ^ to object not used atm
         switch (i) { 
             case 0: 
                 planets[i].texturePath = "./data/sphere-map-nature.ppm"; 
@@ -133,7 +134,6 @@ void MyGLCanvas::initShaders() {
         }
         myTextureManager->loadTexture("planetMap" + std::to_string(i), planets[i].texturePath); 
 
-        myShaderManager->addShaderProgram("planetShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
         planets[i].plyModel->buildArrays();
         planets[i].plyModel->bindVBO(myShaderManager->getShaderProgram("planetShaders")->programID);
     }
@@ -157,37 +157,10 @@ void MyGLCanvas::initShaders() {
     myShaderManager->addShaderProgram("proceduralPlanet", "shaders/330/proceduralPlanet.vert", "shaders/330/proceduralPlanet.frag");
     createIcosphereVAO(5);
 
-    myShaderManager->addShaderProgram("buddahShaders", "shaders/330/buddah.vert", "shaders/330/buddah.frag");
+    myShaderManager->addShaderProgram("buddahShaders", "shaders/330/buddah.vert", "shaders/330/warpPlanetOG.frag");
+    // myShaderManager->addShaderProgram("buddahShaders", "shaders/330/buddah.vert", "shaders/330/buddah.frag");
     myBuddahPLY->buildArrays();
     myBuddahPLY->bindVBO(myShaderManager->getShaderProgram("buddahShaders")->programID);
-
-    
-}
-
-void MyGLCanvas::loadShaders() {
-    myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
-	myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
-
-    myShaderManager->addShaderProgram("planetShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
-    
-    for (int i = 0; i < NUM_PLANETS; i++) {
-        planets[i].plyModel->buildArrays();
-        planets[i].plyModel->bindVBO(myShaderManager->getShaderProgram("planetShaders")->programID);
-    }
-
-	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
-	myEnvironmentPLY->bindVBO(myShaderManager->getShaderProgram("environmentShaders")->programID);
-
-    myShaderManager->addShaderProgram("planeShaders", "shaders/330/plane.vert", "shaders/330/plane.frag", "shaders/330/plane-geo.glsl");
-    createPlane(myShaderManager->getShaderProgram("planeShaders")->programID);
-
-    // warp shaders
-    myShaderManager->addShaderProgram("warpShaders", "shaders/330/warpPlanet.vert", "shaders/330/warpPlanet.frag");
-	//myWarpPLY->bindVBO(myShaderManager->getShaderProgram("warpShaders")->programID);
-    createIcosphereVAO(5);
-
-    myShaderManager->addShaderProgram("proceduralPlanet", "shaders/330/proceduralPlanet.vert", "shaders/330/proceduralPlanet.frag");
-    createIcosphereVAO(5); // recursive depth
 }
 
 struct Vertex {
@@ -549,6 +522,7 @@ void MyGLCanvas::drawScene() {
     glUniform3fv(glGetUniformLocation(planetProgramId, "cameraPos"), 1, glm::value_ptr(eyePosition));
     glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
     glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
+    glUniform1f(glGetUniformLocation(planetProgramId, "myTime"), myTime);
 
     for (int i = 0; i < NUM_PLANETS; i++) {
         // load the planetMap shader defined above into the 2nd texture index
@@ -558,6 +532,10 @@ void MyGLCanvas::drawScene() {
         // Set uniforms common to all planets
         glUniform1i(glGetUniformLocation(planetProgramId, "environMap"), 2 + i);
         glUniform1i(glGetUniformLocation(planetProgramId, "objectTexture"), 1);
+
+        float scaler = (i==0)?1.0f:i*0.5f; 
+
+        glUniform1f(glGetUniformLocation(planetProgramId, "scaler"), scaler);
        
         glm::mat4 planetModelMatrix = modelMatrix;
         
@@ -674,9 +652,11 @@ void MyGLCanvas::drawScene() {
     glUniformMatrix4fv(glGetUniformLocation(buddahProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
     glUniformMatrix4fv(glGetUniformLocation(buddahProgramId, "myModelMatrix"), 1, false, glm::value_ptr(modelMatrix));
     glUniformMatrix4fv(glGetUniformLocation(buddahProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
-    glUniform3fv(glGetUniformLocation(buddahProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
+    // glUniform3fv(glGetUniformLocation(buddahProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
     glUniform3fv(glGetUniformLocation(buddahProgramId, "cameraPos"), 1, glm::value_ptr(cameraPosition));
     glUniform1f(glGetUniformLocation(buddahProgramId, "myTime"), myTime);
+    // glUniform1f(glGetUniformLocation(buddahProgramId, "scaler"), 0.6);
+
     glUniform1i(glGetUniformLocation(buddahProgramId, "noiseTexture"), 11);
     myBuddahPLY->renderVBO(buddahProgramId);
     
@@ -700,8 +680,10 @@ void MyGLCanvas::drawWarp(glm::mat4 modelMatrix, glm::mat4 viewMatrix, float myT
     glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("earth"));
 
     // Set uniforms common to all planets
-    glUniform1i(glGetUniformLocation(planetProgramId, "noise"), 13);
+    // glUniform1i(glGetUniformLocation(planetProgramId, "noise"), 13);
     glUniform1i(glGetUniformLocation(planetProgramId, "objectTexture"), 1);
+
+    glUniform1i(glGetUniformLocation(planetProgramId, "scaler"), 1);
     
     glm::mat4 planetModelMatrix = modelMatrix;
     
@@ -728,6 +710,9 @@ void MyGLCanvas::drawWarp(glm::mat4 modelMatrix, glm::mat4 viewMatrix, float myT
 
     // Set the model matrix for each planet
     // glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(planetModelMatrix));
+    glUniform3fv(glGetUniformLocation(planetProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
+    glUniform1i(glGetUniformLocation(planetProgramId, "noise"), 11);
+    
     glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(modelMatrix));
     // myWarpPLY->renderVBO(planetProgramId);
     glBindVertexArray(icosphereVAO);
@@ -898,20 +883,6 @@ int MyGLCanvas::handle(int e) {
 void MyGLCanvas::resize(int x, int y, int w, int h) {
 	Fl_Gl_Window::resize(x, y, w, h);
 	puts("resize called");
-}
-
-void MyGLCanvas::reloadShaders() {
-	myShaderManager->resetShaders();
-
-	// myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
-	// myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
-
-	// myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
-	// myEnvironmentPLY->bindVBO(myShaderManager->getShaderProgram("environmentShaders")->programID);
-
-    loadShaders(); 
-
-	invalidate();
 }
 
 void MyGLCanvas::loadPLY(std::string filename) {

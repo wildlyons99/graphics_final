@@ -36,7 +36,6 @@ public:
 	Fl_Slider* lightSlider;
 	Fl_Slider* scaleSlider;
 	Fl_Button* openFileButton;
-	Fl_Button* reloadButton;
 	Fl_Button* useNormalMapButton;
 
 	MyGLCanvas* canvas;
@@ -117,11 +116,6 @@ private:
 		cout << "Loading new PPM file from: " << G_chooser.value() << endl;
 		win->canvas->loadObjectTexture(G_chooser.value());
 		win->canvas->redraw();
-	}
-
-
-	static void reloadCB(Fl_Widget* w, void* userdata) {
-		win->canvas->reloadShaders();
 	}
 };
 
@@ -280,9 +274,6 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 	packShaders->type(Fl_Pack::VERTICAL);
 	packShaders->spacing(0);
 	packShaders->begin();
-
-	reloadButton = new Fl_Button(0, 0, pack->w() - 20, 20, "Reload");
-	reloadButton->callback(reloadCB, (void*)this);
 
 	packShaders->end();
 	packCol2->end();
