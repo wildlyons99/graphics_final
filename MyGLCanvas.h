@@ -123,6 +123,9 @@ private:
     glm::mat4 viewMatrix;
 
 	bool firstTime;
+
+    // todo Delet
+    float orbitAngle; 
 };
 
 #endif // !MYGLCANVAS_H

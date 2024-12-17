@@ -26,6 +26,8 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
     planetSpeed = 0.05f;
     NUM_PLANETS = 3; 
 
+    orbitAngle = 0; 
+
     for (int i = 0; i < NUM_PLANETS; i++) {
         Planet planet = {
             .size = 0.75f * (NUM_PLANETS - (i * 0.5f)),
@@ -169,8 +171,8 @@ void MyGLCanvas::loadShaders() {
     myShaderManager->addShaderProgram("planetShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
     
     for (int i = 0; i < NUM_PLANETS; i++) {
-        planets[i]->buildArrays();
-        planets[i]->bindVBO(myShaderManager->getShaderProgram("planetShaders")->programID);
+        planets[i].plyModel->buildArrays();
+        planets[i].plyModel->bindVBO(myShaderManager->getShaderProgram("planetShaders")->programID);
     }
 
 	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
@@ -609,11 +611,11 @@ void MyGLCanvas::drawScene() {
 	environmentModelMatrix = glm::rotate(environmentModelMatrix, TO_RADIANS(rotWorldVec.y), glm::vec3(0.0f, 1.0f, 0.0f));
 	environmentModelMatrix = glm::rotate(environmentModelMatrix, TO_RADIANS(rotWorldVec.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-
-    float rotateAngle = orbitAngle * -20;      // Each planet shifted by i
+    // add back orbit angle ?? 
+    // float rotateAngle = orbitAngle * -20;      // Each planet shifted by i
 
     glm::mat4 starsModelMatrix = glm::mat4(1.0f);
-    starsModelMatrix = glm::rotate(starsModelMatrix, rotateAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+    // starsModelMatrix = glm::rotate(starsModelMatrix, rotateAngle, glm::vec3(0.0f, 1.0f, 0.0f));
 
 	starsModelMatrix = glm::scale(starsModelMatrix, glm::vec3(11.0f));
 
@@ -705,23 +707,24 @@ void MyGLCanvas::drawWarp(glm::mat4 modelMatrix, glm::mat4 viewMatrix, float myT
     
     // copied from above
     // Calculate elliptical orbit parameters
-    float angle = orbitAngle; // Offset angle for each planet
-    float radiusX = 2.0f + 1.5 * 0.5f;     // X-axis semi-major radius
-    float radiusZ = 1.5f + 0.5f;     // Z-axis semi-minor radius
+    // orbitAngle 
+    // float angle = orbitAngle; // Offset angle for each planet
+    // float radiusX = 2.0f + 1.5 * 0.5f;     // X-axis semi-major radius
+    // float radiusZ = 1.5f + 0.5f;     // Z-axis semi-minor radius
 
-    // Calculate x, y, z positions
-    float x = radiusX * cos(angle); // Elliptical x-position
-    float z = radiusZ * sin(angle); // Elliptical z-position
+    // // Calculate x, y, z positions
+    // float x = radiusX * cos(angle); // Elliptical x-position
+    // float z = radiusZ * sin(angle); // Elliptical z-position
 
-    // Add y-axis oscillation up to 50% of the orbit height
-    float maxY = 0.5f * radiusX; // Max height of oscillation
-    float y = maxY * sin(angle); // Oscillation along y-axis
+    // // Add y-axis oscillation up to 50% of the orbit height
+    // float maxY = 0.5f * radiusX; // Max height of oscillation
+    // float y = maxY * sin(angle); // Oscillation along y-axis
 
-    // Translate the planet to its elliptical orbit position
-    planetModelMatrix = glm::translate(planetModelMatrix, glm::vec3(x, y, z));
+    // // Translate the planet to its elliptical orbit position
+    // planetModelMatrix = glm::translate(planetModelMatrix, glm::vec3(x, y, z));
 
-    // Scale the planets down 
-    planetModelMatrix = glm::scale(planetModelMatrix, glm::vec3(0.75f));
+    // // Scale the planets down 
+    // planetModelMatrix = glm::scale(planetModelMatrix, glm::vec3(0.75f));
 
     // Set the model matrix for each planet
     // glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(planetModelMatrix));
