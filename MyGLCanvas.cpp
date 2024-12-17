@@ -23,11 +23,12 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	lightAngle = 0.0f;
 	textureBlend = 0.0f;
 
+    planetSpeed = 0.05f;
     NUM_PLANETS = 3; 
 
     for (int i = 0; i < NUM_PLANETS; i++) {
         Planet planet = {
-            .size = scaleFactor,
+            .size = 0.75f * (NUM_PLANETS - (i * 0.5f)),
             .modelMatrix = glm::mat4(1.0f),
             .position = glm::vec3(1.0f + i, 2.0f + i, -1.0f - i),
             .orbitDirChange = glm::vec3(1.0f + (-1.5f * i)),
@@ -99,7 +100,6 @@ void MyGLCanvas::initShaders() {
 
 
     for (int i = 0; i < NUM_PLANETS; i++) {
-        // std::string ppm_path; 
         switch (i) { 
             case 0: 
                 planets[i].texturePath = "./data/sphere-map-nature.ppm"; 
@@ -287,8 +287,6 @@ void MyGLCanvas::drawScene() {
      glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
         glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
 
-    float planetSpeed = 0.05f;
-
     for (int i = 0; i < NUM_PLANETS; i++) {
         // load the planetMap shader defined above into the 2nd texture index
         glActiveTexture(GL_TEXTURE0 + 2 + i);
@@ -303,39 +301,34 @@ void MyGLCanvas::drawScene() {
         // Calculate elliptical orbit parameters
         if (!planets[i].orbitPaused) {
             glm::vec3 v = (planets[i].position.x != 0.0f) ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
+            glm::vec3 t0 = glm::cross(planets[i].position, v); // arbitrary vec orthogonal to radius
 
-            glm::vec3 t0 = glm::cross(planets[i].position, v);
-
-            if (glm::length(t0) < 0.001f) {
+            if (glm::length(t0) < 0.001f) { // assert t0 not 0 in length
                 v = glm::vec3(0, 0, 1);
                 t0 = glm::cross(planets[i].position, v);
             }
 
             t0 = glm::normalize(t0);
-
             float dotDirChangeT0 = glm::dot(planets[i].orbitDirChange, t0);
             float dotDirChangeDirChange = glm::dot(planets[i].orbitDirChange, planets[i].orbitDirChange);
             float lambda = (1.0f - dotDirChangeT0) / dotDirChangeDirChange;
 
-            if (planets[i].recentlyDragged) {
+            if (planets[i].recentlyDragged) { // upon drag, make sure new orbit direction is orthogonal to radius
                 planets[i].orbitDirChange = glm::normalize(t0 + lambda * planets[i].orbitDirChange);
                 planets[i].recentlyDragged = false;
             }
+
             float radius = glm::length(planets[i].position);
-            float speed = planetSpeed / (1.5f * radius);
+            float speed = planetSpeed / (1.5f * radius); // adjust speed based on radius
             glm::vec3 step = planets[i].orbitDirChange * speed;
 
+            // adjust orbit direction with each time step
             glm::vec3 oldPlanetPos = planets[i].position;
             planets[i].position = radius * glm::normalize(oldPlanetPos + step);
             planets[i].orbitDirChange = glm::normalize(planets[i].position - oldPlanetPos);
         }
 
         planetModelMatrix = glm::translate(planetModelMatrix, planets[i].position);
-
-
-        // Scale the planets down by a factor of 4
-        float planetScale = 0.75f * (NUM_PLANETS - (i * 0.5f));
-        planets[i].size = planetScale;
         planetModelMatrix = glm::scale(planetModelMatrix, glm::vec3(planets[i].size));
         planets[i].modelMatrix = planetModelMatrix;
 
@@ -471,7 +464,7 @@ int MyGLCanvas::handle(int e) {
     int closestObjID;
     glm::vec3 rayV;
 	switch (e) {
-        case FL_DRAG:
+        case FL_DRAG: // if planet has been clicked, drag it
             mouseX = (int)Fl::event_x();
             mouseY = (int)Fl::event_y();
             for (int i = 0; i < NUM_PLANETS; i++) {
@@ -493,7 +486,7 @@ int MyGLCanvas::handle(int e) {
             break;
         case FL_MOVE:
             break;
-        case FL_PUSH:
+        case FL_PUSH: // upon click, if planet(s) clicked, pause the closest clicked planet's orbit
             mouseX = (int)Fl::event_x();
             mouseY = (int)Fl::event_y();
             rayV = generateRay(mouseX, mouseY);
