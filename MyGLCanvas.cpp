@@ -35,6 +35,7 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	myShaderManager = new ShaderManager();
 	myObjectPLY = new ply("./data/sphere.ply");
 	myEnvironmentPLY = new ply("./data/sphere.ply");
+    myBuddahPLY = new ply("./data/happy.ply");
 
 
     // Potential sets of ply and ppm files
@@ -89,6 +90,7 @@ MyGLCanvas::~MyGLCanvas() {
 	delete myShaderManager;
 	delete myObjectPLY;
 	delete myEnvironmentPLY;
+    delete myBuddahPLY;
 
     for (int i = 0; i < NUM_PLANETS; i++) {
         delete planets[i]; 
@@ -106,7 +108,8 @@ void MyGLCanvas::initShaders() {
 
     myTextureManager->loadTexture("noise", "./data/64noise3octaves.ppm");
     myTextureManager->loadTexture("colorMap", "./data/colorMap.ppm");
-    myTextureManager->loadTexture("planetNoise", "./data/256noise3octaves.ppm");
+    myTextureManager->loadTexture("planetNoise", "./data/simpleNoise.ppm");
+    myTextureManager->loadTexture("waterNormals", "./data/waterNormals.ppm");
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	myObjectPLY->buildArrays();
@@ -154,6 +157,12 @@ void MyGLCanvas::initShaders() {
     // adding the proceduralPlanet work
     myShaderManager->addShaderProgram("proceduralPlanet", "shaders/330/proceduralPlanet.vert", "shaders/330/proceduralPlanet.frag");
     createIcosphereVAO(5);
+
+    myShaderManager->addShaderProgram("buddahShaders", "shaders/330/buddah.vert", "shaders/330/buddah.frag");
+    myBuddahPLY->buildArrays();
+    myBuddahPLY->bindVBO(myShaderManager->getShaderProgram("buddahShaders")->programID);
+
+    
 }
 
 void MyGLCanvas::loadShaders() {
@@ -183,10 +192,172 @@ void MyGLCanvas::loadShaders() {
 }
 
 struct Vertex {
-    float position[3];
-    float normal[3];
-    float uv[2];
+    glm::vec3 position;  // Vertex position
+    glm::vec3 normal;    // Vertex normal
+    glm::vec2 uv;        // Texture coordinates
+    glm::vec3 tangent;   // Tangent vector
+    glm::vec3 bitangent; // Bitangent vector
 };
+
+
+// Generate an icosphere
+void generateIcosphere(int recursionLevel, std::vector<Vertex>& vertices, std::vector<unsigned int>& indices) {
+    const float GOLDEN_RATIO = (1.0f + std::sqrt(5.0f)) / 2.0f;
+    // Create initial icosahedron vertices
+    std::vector<glm::vec3> positions = {
+        {-1, GOLDEN_RATIO, 0}, {1, GOLDEN_RATIO, 0}, {-1, -GOLDEN_RATIO, 0}, {1, -GOLDEN_RATIO, 0},
+        {0, -1, GOLDEN_RATIO}, {0, 1, GOLDEN_RATIO}, {0, -1, -GOLDEN_RATIO}, {0, 1, -GOLDEN_RATIO},
+        {GOLDEN_RATIO, 0, -1}, {GOLDEN_RATIO, 0, 1}, {-GOLDEN_RATIO, 0, -1}, {-GOLDEN_RATIO, 0, 1}
+    };
+
+    for (auto& pos : positions) {
+        pos = normalize(pos);
+    }
+
+    // Initial indices for the icosahedron
+    std::vector<unsigned int> initialIndices = {
+        0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11,
+        1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8,
+        3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9,
+        4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1
+    };
+
+    // Subdivide function
+    auto midpoint = [&](unsigned int v1, unsigned int v2) {
+        glm::vec3 mid = (positions[v1] + positions[v2]) * 0.5f;
+        mid = normalize(mid);
+        positions.push_back(mid);
+        return static_cast<unsigned int>(positions.size() - 1);
+    };
+
+    // Subdivide the icosahedron to create an icosphere
+    for (int i = 0; i < recursionLevel; ++i) {
+        std::vector<unsigned int> newIndices;
+        for (size_t j = 0; j < initialIndices.size(); j += 3) {
+            unsigned int a = midpoint(initialIndices[j], initialIndices[j + 1]);
+            unsigned int b = midpoint(initialIndices[j + 1], initialIndices[j + 2]);
+            unsigned int c = midpoint(initialIndices[j + 2], initialIndices[j]);
+
+            newIndices.push_back(initialIndices[j]);
+            newIndices.push_back(a);
+            newIndices.push_back(c);
+
+            newIndices.push_back(initialIndices[j + 1]);
+            newIndices.push_back(b);
+            newIndices.push_back(a);
+
+            newIndices.push_back(initialIndices[j + 2]);
+            newIndices.push_back(c);
+            newIndices.push_back(b);
+
+            newIndices.push_back(a);
+            newIndices.push_back(b);
+            newIndices.push_back(c);
+        }
+        initialIndices = newIndices;
+    }
+
+    indices = initialIndices;
+
+    // Generate vertices
+    for (const auto& pos : positions) {
+        Vertex vertex;
+        vertex.position[0] = pos.x;
+        vertex.position[1] = pos.y;
+        vertex.position[2] = pos.z;
+        vertex.normal[0] = pos.x;
+        vertex.normal[1] = pos.y;
+        vertex.normal[2] = pos.z;
+        vertex.uv[0] = 0.5f + std::atan2(pos.z, pos.x) / (2.0f * PI);
+        vertex.uv[1] = 0.5f - std::asin(pos.y) / PI;
+        vertex.tangent = glm::vec3(0.0f, 0.0f, 0.0f);
+        vertex.bitangent = glm::vec3(0.0f, 0.0f, 0.0f);
+        vertices.push_back(vertex);
+    }
+
+    for (size_t i = 0; i < indices.size(); i += 3) {
+        Vertex& v0 = vertices[indices[i]];
+        Vertex& v1 = vertices[indices[i + 1]];
+        Vertex& v2 = vertices[indices[i + 2]];
+
+        // Compute edge vectors and delta UVs
+        glm::vec3 edge1 = v1.position - v0.position;
+        glm::vec3 edge2 = v2.position - v0.position;
+        glm::vec2 deltaUV1 = v1.uv - v0.uv;
+        glm::vec2 deltaUV2 = v2.uv - v0.uv;
+
+        float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        glm::vec3 tangent, bitangent;
+
+        tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+        bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+        bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+        bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+        v0.tangent += tangent;
+        v1.tangent += tangent;
+        v2.tangent += tangent;
+
+        v0.bitangent += bitangent;
+        v1.bitangent += bitangent;
+        v2.bitangent += bitangent;
+    }
+
+    // Normalize the tangents and bitangents
+    for (auto& vertex : vertices) {
+        vertex.tangent = glm::normalize(vertex.tangent);
+        vertex.bitangent = glm::normalize(vertex.bitangent);
+    }
+    
+}
+
+// Create VAO for the icosphere
+void MyGLCanvas::createIcosphereVAO(int recursionLevel) {
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    generateIcosphere(recursionLevel, vertices, indices);
+
+    GLuint vao, vbo, ebo;
+
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
+
+    glBindVertexArray(vao);
+
+    // Upload vertex data
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+
+    // Upload index data
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+    // Specify vertex attributes
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
+    glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
+    glEnableVertexAttribArray(3);
+
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
+    glEnableVertexAttribArray(4);
+
+    glBindVertexArray(0);
+
+    icosphereVAO = vao;
+    icosphereVertices = indices.size();
+}
 
 void MyGLCanvas::createPlane(unsigned int programID) {
     int rows = 63;
@@ -347,11 +518,12 @@ void MyGLCanvas::drawScene() {
     // add additional shaders
     glActiveTexture(GL_TEXTURE11);
     glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("noise"));
-    glActiveTexture(GL_TEXTURE12);
-    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("colorMap"));
     glActiveTexture(GL_TEXTURE13);
     glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("planetNoise"));
-
+    glActiveTexture(GL_TEXTURE14);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("waterNormals"));
+    glActiveTexture(GL_TEXTURE18);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("colorMap"));
 	//first draw the object sphere
 	// unsigned int objProgramId =
 	// 	myShaderManager->getShaderProgram("objectShaders")->programID;
@@ -466,7 +638,7 @@ void MyGLCanvas::drawScene() {
     // pass in the noise texture
     glUniform1i(glGetUniformLocation(planeProgramId, "noiseTexture"), 11);
     // pass in the color map
-    glUniform1i(glGetUniformLocation(planeProgramId, "colorTexture"), 12);
+    glUniform1i(glGetUniformLocation(planeProgramId, "colorTexture"), 18);
     glBindVertexArray(planeVAO);
     
     glDrawElements(GL_TRIANGLES, planevertices, GL_UNSIGNED_INT, 0);
@@ -477,16 +649,27 @@ void MyGLCanvas::drawScene() {
     glUniformMatrix4fv(glGetUniformLocation(proceduralPlanetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
     glUniformMatrix4fv(glGetUniformLocation(proceduralPlanetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(modelMatrix));
     glUniformMatrix4fv(glGetUniformLocation(proceduralPlanetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
-    glUniform1f(glGetUniformLocation(planeProgramId, "myTime"), myTime);
+    glUniform1f(glGetUniformLocation(proceduralPlanetProgramId, "myTime"), myTime);
     glUniform3fv(glGetUniformLocation(proceduralPlanetProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
     glUniform3fv(glGetUniformLocation(proceduralPlanetProgramId, "cameraPos"), 1, glm::value_ptr(cameraPosition));
-    glUniform1i(glGetUniformLocation(planeProgramId, "noiseTexture"), 13);
-    // pass in the color map
-    glUniform1i(glGetUniformLocation(planeProgramId, "colorTexture"), 12);
-
     glUniform1f(glGetUniformLocation(proceduralPlanetProgramId, "oceanLevel"), 0.1f);
+    glUniform1i(glGetUniformLocation(proceduralPlanetProgramId, "noiseTexture"), 13);
+    glUniform1i(glGetUniformLocation(proceduralPlanetProgramId, "planeNoiseTexture"), 11);
+    glUniform1i(glGetUniformLocation(proceduralPlanetProgramId, "colorTexture"), 18);
+    glUniform1i(glGetUniformLocation(proceduralPlanetProgramId, "waterNormals"), 14);
     glBindVertexArray(icosphereVAO);
     glDrawElements(GL_TRIANGLES, icosphereVertices, GL_UNSIGNED_INT, 0);
+
+    unsigned int buddahProgramId = myShaderManager->getShaderProgram("buddahShaders")->programID;
+    glUseProgram(buddahProgramId);
+    glUniformMatrix4fv(glGetUniformLocation(buddahProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
+    glUniformMatrix4fv(glGetUniformLocation(buddahProgramId, "myModelMatrix"), 1, false, glm::value_ptr(modelMatrix));
+    glUniformMatrix4fv(glGetUniformLocation(buddahProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
+    glUniform3fv(glGetUniformLocation(buddahProgramId, "lightPos"), 1, glm::value_ptr(lightPos));
+    glUniform3fv(glGetUniformLocation(buddahProgramId, "cameraPos"), 1, glm::value_ptr(cameraPosition));
+    glUniform1f(glGetUniformLocation(buddahProgramId, "myTime"), myTime);
+    glUniform1i(glGetUniformLocation(buddahProgramId, "noiseTexture"), 11);
+    myBuddahPLY->renderVBO(buddahProgramId);
     */
     // draw the warp planet
     drawWarp(modelMatrix, viewMatrix, myTime); 
