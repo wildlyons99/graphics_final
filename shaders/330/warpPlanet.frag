@@ -6,12 +6,13 @@
 in vec3 positionVec;  // Incoming position from vertex shader
 in vec3 normalVec;    // Incoming normal from vertex shader
 
-uniform vec3 cameraPos;
 uniform float myTime; 
 uniform vec3 lightPos;
 
+uniform float scaler; 
+
 out vec4 outputColor;
-in vec3 pos; // Position in some space, presumably inside a sphere
+in vec3 pos; 
 
 ////////////////////////////////////
 // Hash and 3D Noise Functions
@@ -113,8 +114,8 @@ float compute3DPatternFields(vec3 p, out vec2 octaveField, out vec2 noiseVector)
     p *= 0.7 + 0.2*cos(0.05*myTime);
 
     // Let's derive a 2D field from some slices of 3D fbm for octaveField:
-    float ofx = fbm3D(p + vec3(1.0,0.8,0.0), 0.6);
-    float ofy = fbm3D(p + vec3(6.2,0.0,9.0), 0.6);
+    float ofx = fbm3D(p + scaler*vec3(1.0,0.8,0.0), 0.6);
+    float ofy = fbm3D(p + scaler*vec3(6.2,0.0,9.0), 0.6);
     octaveField = 0.5 + 0.5*vec2(ofx, ofy);
 
     octaveField += 0.02*sin(vec2(0.13,0.11)*myTime * length(octaveField));
@@ -138,17 +139,17 @@ void main() {
     vec3 p = normalize(pos);
 
     // Warp the domain 
-    vec3 warpedPos = domainWarp3D(p / 7, 0.6);
+    vec3 warpedPos = domainWarp3D(p / 15, 0.6);
 
     vec2 octaveField, noiseVector;
     float patternValue = compute3DPatternFields(warpedPos, octaveField, noiseVector);
 
     // Create complex color from multiple fbm-related values
-    vec3 color = vec3(0.7, 0.2, 0.4);
+    vec3 color = scaler * vec3(0.7, 0.2, 0.4);
     color = mix(color, vec3(0.7,0.2,0.2), patternValue);
-    color = 0.5*mix(color, vec3(0.9,0.9,0.9), dot(noiseVector, noiseVector));
-    color = mix(color, vec3(0.5,0.2,0.2), 0.5*octaveField.y*octaveField.y);
-    color = mix(color, vec3(0.7,0.2,0.4), 0.5*smoothstep(1.2,1.3,abs(noiseVector.y)+abs(noiseVector.x)));
+    color = 0.5*mix(color, vec3(scaler*0.9,0.9,0.9), dot(noiseVector, noiseVector));
+    color = mix(color, vec3(scaler*0.5,0.2,0.2), 0.5*octaveField.y*octaveField.y);
+    color = mix(color, vec3(0.4,0.2,0.4), 0.5*smoothstep(1.2,1.3,abs(noiseVector.y)+abs(noiseVector.x)));
     color *= patternValue*0.6;
 
     // Lighting
@@ -160,7 +161,7 @@ void main() {
     color *= lightingContribution;
 
     // Post-processing
-    color = vec3(1.0) - color;
+    color = vec3(1.0) - (color*scaler);
     color = color*color;
 
     outputColor = vec4(color, 1.0);

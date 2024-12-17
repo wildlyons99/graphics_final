@@ -8,8 +8,9 @@ uniform mat4 myViewMatrix;         // View transformation matrix
 uniform mat4 myPerspectiveMatrix;   // Projection matrix
 uniform float myTime;               // Time
 
-out vec3 vNormal;
-out vec3 vWorldPos;
+out vec3 normalVec;
+out vec3 positionVec;
+out vec3 pos; 
 
 uniform sampler2D noiseTexture;
 float genHeight(float x, float z) {
@@ -33,11 +34,12 @@ float genTerrain(float x, float z) {
 }
 void main() {
     float height = genTerrain(myPosition.x, 0);
-    vWorldPos = (myModelMatrix * vec4(myPosition, 1.0)).xyz;
-    vNormal = mat3(transpose(inverse(myModelMatrix))) * myNormal;
+    positionVec = (myModelMatrix * vec4(myPosition, 1.0)).xyz;
+    normalVec = mat3(transpose(inverse(myModelMatrix))) * myNormal;
     mat4 scaleDouble = mat4(2.0);
     scaleDouble[3][3] = 1.0;
     
+    pos = myPosition; 
     
     gl_Position = myPerspectiveMatrix * myViewMatrix * myModelMatrix * scaleDouble * vec4(myPosition + vec3(0,height + 1.5,0), 1.0);
 }

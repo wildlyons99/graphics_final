@@ -12,21 +12,7 @@ uniform mat4 myPerspectiveMatrix;
 out vec3 positionVec;
 out vec3 normalVec;
 
-out vec2 sharedTexCoord;
 out vec3 pos;
-
-vec2 isectSphere(vec3 point) {
-    vec2 coord;
-
-    vec3 normalizedPoint = normalize(point);
-
-    coord.x = atan(normalizedPoint.z, normalizedPoint.x) / (2.0 * PI) + 0.5;
-
-    coord.y = acos(normalizedPoint.y) / PI;
-
-
-    return coord;
-}
 
 
 void main() {
@@ -35,6 +21,5 @@ void main() {
     normalVec = mat3(transpose(inverse(myModelMatrix))) * myNormal;
 
     gl_Position = myPerspectiveMatrix * myViewMatrix * worldPos;
-    sharedTexCoord = isectSphere(myPosition);
     pos = myPosition;
 }

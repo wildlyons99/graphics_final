@@ -5,7 +5,6 @@
 in vec3 positionVec;
 in vec3 normalVec;
 uniform vec3 lightPos;
-in vec2 sharedTexCoord;
 uniform float textureBlend;
 
 uniform vec3 cameraPos;
@@ -55,9 +54,6 @@ void main() {
     vec4 reflectionColor = textureColorAt(R, environMap);
     
     vec4 textureColor = textureColorAt(pos, objectTexture);
-
-
-    //vec4 textureColor = texture(objectTexture, sharedTexCoord);
 
    float dotP = 1;
    if (useDiffuse == 1) {

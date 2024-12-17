@@ -46,8 +46,6 @@ public:
 	void loadPLY(std::string filename);
 	void loadEnvironmentTexture(std::string filename);
 	void loadObjectTexture(std::string filename);
-	void reloadShaders();
-    void loadShaders(); 
 
 private:
 	void draw();
@@ -104,11 +102,14 @@ private:
         ply* plyModel;
         std::string texturePath;
         float size;
+        float scalar;
         glm::mat4 modelMatrix;
         glm::vec3 position; // world space
         glm::vec3 orbitDirChange;
         bool orbitPaused;
         bool recentlyDragged;
+        unsigned int vao;
+        unsigned int vertices;
     };
 
     std::vector<Planet> planets;
