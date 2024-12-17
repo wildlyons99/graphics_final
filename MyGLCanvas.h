@@ -79,13 +79,23 @@ private:
     std::vector<glm::vec3> planetDirChange;
     std::vector<float> planetSize;
 
+    // struct {
+    //     ply plyModel;
+    //     float size;
+    //     glm::mat4 modelMatrix;
+    //     glm::vec3 position; // world space
+    //     glm::vec3 orbitDirChange;
+    //     bool orbitPaused;
+    //     bool recentlyDragged;
+    // } planet;
+
+    // std::vector<planet *> planets;
+
     // saving the PLY and PLL path for each planet
     std::vector<string> planetPLYFilenames;
     std::vector<string> planetTextureFilenames;
 	
 
-    bool orbitPaused;
-    bool recentlyDragged;
     float oldT;
     int NUM_PLANETS;
 

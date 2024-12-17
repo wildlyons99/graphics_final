@@ -327,6 +327,8 @@ void MyGLCanvas::drawScene() {
                 t0 = glm::cross(planetPosition[i], v);
             }
 
+            t0 = glm::normalize(t0);
+
             float dotDirChangeT0 = glm::dot(planetDirChange[i], t0);
             float dotDirChangeDirChange = glm::dot(planetDirChange[i], planetDirChange[i]);
             float lambda = (1.0f - dotDirChangeT0) / dotDirChangeDirChange;
@@ -348,7 +350,7 @@ void MyGLCanvas::drawScene() {
 
 
         // Scale the planets down by a factor of 4
-        float planetScale = 0.75f * (i+1);
+        float planetScale = 0.75f * (NUM_PLANETS - (i * 0.5f));
         planetSize[i] = planetScale;
         planetModelMatrix = glm::scale(planetModelMatrix, glm::vec3(planetSize[i]));
         planetMatrices.insert(planetMatrices.begin() + i, planetModelMatrix);
@@ -500,8 +502,8 @@ int MyGLCanvas::handle(int e) {
 
                     planetPosition[i] = newPlanetPos;
                     oldRayV = newRayV;
-                    glm::vec3 dirChange = glm::normalize(eyeToNewPlanet - eyeToOldPlanet);
-                    planetDirChange[i] = (glm::length(dirChange) > 0.000f) ? dirChange : planetDirChange[i];
+                    glm::vec3 dirChange = eyeToNewPlanet - eyeToOldPlanet;
+                    planetDirChange[i] = (glm::length(dirChange) > 0.0000f) ? glm::normalize(dirChange) : planetDirChange[i];
                     planetRecentlyDragged[i] = true;
                 }
             }
