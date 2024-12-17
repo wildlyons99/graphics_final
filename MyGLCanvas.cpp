@@ -23,14 +23,14 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	lightAngle = 0.0f;
 	textureBlend = 0.0f;
 
-    planetSpeed = 0.05f;
-    NUM_PLANETS = 3; 
+    planetSpeed = 0.025f;
+    NUM_PLANETS = 11; 
 
     orbitAngle = 0; 
 
     for (int i = 0; i < NUM_PLANETS; i++) {
         Planet planet = {
-            .size = 0.75f * (NUM_PLANETS - (i * 0.5f)),
+            .size = 0.75f * (3 - (i * 0.5f)),
             .modelMatrix = glm::mat4(1.0f),
             .position = glm::vec3(1.0f + i, 2.0f + i, -1.0f - i),
             .orbitDirChange = glm::vec3(1.0f + (-1.5f * i)),
@@ -38,6 +38,12 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
             .recentlyDragged = false
         };
         planets.insert(planets.begin() + i, planet);
+        if (i >= 3) {
+            planets[i].size = glm::gaussRand(0.25f, 0.1f);
+            planets[i].position = glm::vec3(glm::linearRand(-2.5f, 2.5f), glm::linearRand(-2.5f, 2.5f), glm::linearRand(-2.5f, 2.5f));
+            planets[i].orbitDirChange = glm::vec3(glm::linearRand(-1.0f, 1.0f), glm::linearRand(-1.0f, 1.0f), glm::linearRand(-1.0f, 1.0f));
+        }
+        planets[i].scalar = glm::linearRand(0.5f, 1.5f);
     }
 
 	useDiffuse = false;
@@ -114,8 +120,13 @@ void MyGLCanvas::initShaders() {
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	myObjectPLY->buildArrays();
 	myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
-
+    // adding the proceduralPlanet work
+    myShaderManager->addShaderProgram("proceduralPlanet", "shaders/330/proceduralPlanet.vert", "shaders/330/proceduralPlanet.frag");
+    myShaderManager->addShaderProgram("proceduralPlanet2", "shaders/330/warpPlanetProcedural.vert", "shaders/330/proceduralPlanet.frag");
+    createIcosphereVAO(5);
+    
     myShaderManager->addShaderProgram("planetShaders", "shaders/330/object-vert.shader", "shaders/330/warpPlanet.frag");
+    myShaderManager->addShaderProgram("planetShaders2", "shaders/330/object-vert.shader", "shaders/330/warpPlanetOG.frag");
     for (int i = 0; i < NUM_PLANETS; i++) {
         // for if swicth frag shader ^ to object not used atm
         switch (i) { 
@@ -132,8 +143,12 @@ void MyGLCanvas::initShaders() {
                 planets[i].texturePath = "./data/brick.ppm";
                 break; 
         }
-        myTextureManager->loadTexture("planetMap" + std::to_string(i), planets[i].texturePath); 
-
+        myTextureManager->loadTexture("planetMap" + std::to_string(i), planets[i].texturePath);
+        if (!planets[i].plyModel) {
+            planets[i].vao = icosphereVAO;
+            planets[i].vertices = icosphereVertices;
+            continue;
+        }
         planets[i].plyModel->buildArrays();
         planets[i].plyModel->bindVBO(myShaderManager->getShaderProgram("planetShaders")->programID);
     }
@@ -152,10 +167,12 @@ void MyGLCanvas::initShaders() {
     myWarpPLY->buildArrays();
 	myWarpPLY->bindVBO(myShaderManager->getShaderProgram("warpShaders")->programID);
 
+    myShaderManager->addShaderProgram("warpShaders2", "shaders/330/warpPlanet.vert", "shaders/330/warpPlanet.frag");
+
 
     // adding the proceduralPlanet work
-    myShaderManager->addShaderProgram("proceduralPlanet", "shaders/330/proceduralPlanet.vert", "shaders/330/proceduralPlanet.frag");
-    createIcosphereVAO(5);
+    // myShaderManager->addShaderProgram("proceduralPlanet", "shaders/330/proceduralPlanet.vert", "shaders/330/proceduralPlanet.frag");
+    // createIcosphereVAO(5);
 
     myShaderManager->addShaderProgram("buddahShaders", "shaders/330/buddah.vert", "shaders/330/warpPlanetOG.frag");
     // myShaderManager->addShaderProgram("buddahShaders", "shaders/330/buddah.vert", "shaders/330/buddah.frag");
@@ -525,15 +542,44 @@ void MyGLCanvas::drawScene() {
     glUniform1f(glGetUniformLocation(planetProgramId, "myTime"), myTime);
 
     for (int i = 0; i < NUM_PLANETS; i++) {
+        if (i == 9) {
+            planetProgramId = myShaderManager->getShaderProgram("planetShaders2")->programID;
+            glUseProgram(planetProgramId);
+            glUniform3fv(glGetUniformLocation(planetProgramId, "cameraPos"), 1, glm::value_ptr(eyePosition));
+            glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
+            glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
+            glUniform1f(glGetUniformLocation(planetProgramId, "myTime"), myTime);
+        }
+        // if (i == 10) {
+        //     planetProgramId = myShaderManager->getShaderProgram("proceduralPlanet2")->programID;
+        //     glUseProgram(planetProgramId);
+        //     glUniform3fv(glGetUniformLocation(planetProgramId, "cameraPos"), 1, glm::value_ptr(eyePosition));
+        //     glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
+        //     glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
+        //     glUniform1f(glGetUniformLocation(planetProgramId, "myTime"), myTime);
+        // }
+        if (i >= 5) {
+            planetProgramId = myShaderManager->getShaderProgram("warpShaders2")->programID;
+            glUseProgram(planetProgramId);
+            glUniform3fv(glGetUniformLocation(planetProgramId, "cameraPos"), 1, glm::value_ptr(eyePosition));
+            glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myViewMatrix"), 1, false, glm::value_ptr(viewMatrix));
+            glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myPerspectiveMatrix"), 1, false, glm::value_ptr(perspectiveMatrix));
+            glUniform1f(glGetUniformLocation(planetProgramId, "myTime"), myTime);
+        }
+        
         // load the planetMap shader defined above into the 2nd texture index
-        glActiveTexture(GL_TEXTURE0 + 2 + i);
+        glActiveTexture(GL_TEXTURE0 + 25 + i);
         glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("planetMap" + std::to_string(i)));
 
         // Set uniforms common to all planets
         glUniform1i(glGetUniformLocation(planetProgramId, "environMap"), 2 + i);
         glUniform1i(glGetUniformLocation(planetProgramId, "objectTexture"), 1);
 
-        float scaler = (i==0)?1.0f:i*0.5f; 
+        float scaler = (i==0)?1.0f:i*0.5f;
+
+        if (i >= 3) {
+            scaler = planets[i].scalar;
+        }
 
         glUniform1f(glGetUniformLocation(planetProgramId, "scaler"), scaler);
        
@@ -575,7 +621,12 @@ void MyGLCanvas::drawScene() {
 
         // Set the model matrix for each planet
         glUniformMatrix4fv(glGetUniformLocation(planetProgramId, "myModelMatrix"), 1, false, glm::value_ptr(planetModelMatrix));
-        planets[i].plyModel->renderVBO(planetProgramId);
+        if (planets[i].plyModel) {
+            planets[i].plyModel->renderVBO(planetProgramId);
+        } else {
+            glBindVertexArray(planets[i].vao);
+            glDrawElements(GL_TRIANGLES, planets[i].vertices, GL_UNSIGNED_INT, 0);
+        }
     }
 
 
@@ -661,7 +712,7 @@ void MyGLCanvas::drawScene() {
     myBuddahPLY->renderVBO(buddahProgramId);
     
     // draw the warp planet
-    drawWarp(modelMatrix, viewMatrix, myTime); 
+    //drawWarp(modelMatrix, viewMatrix, myTime); 
 }
 
 void MyGLCanvas::drawWarp(glm::mat4 modelMatrix, glm::mat4 viewMatrix, float myTime) {
