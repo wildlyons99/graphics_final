@@ -99,22 +99,22 @@ void MyGLCanvas::initShaders() {
 
 
     for (int i = 0; i < NUM_PLANETS; i++) {
-        std::string ppm_path; 
+        // std::string ppm_path; 
         switch (i) { 
             case 0: 
-                ppm_path = "./data/sphere-map-nature.ppm"; 
+                planets[i].texturePath = "./data/sphere-map-nature.ppm"; 
                 break; 
             case 1: 
-                ppm_path = "./data/boccioni.ppm"; 
+                planets[i].texturePath = "./data/boccioni.ppm"; 
                 break; 
             case 2: 
-                ppm_path = "./data/sphere-map-castle.ppm";
+                planets[i].texturePath = "./data/sphere-map-castle.ppm";
                 break;
             default: 
-                ppm_path = "./data/brick.ppm";
+                planets[i].texturePath = "./data/brick.ppm";
                 break; 
         }
-        myTextureManager->loadTexture("planetMap" + std::to_string(i), ppm_path); 
+        myTextureManager->loadTexture("planetMap" + std::to_string(i), planets[i].texturePath); 
 
         myShaderManager->addShaderProgram("planetShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
         planets[i].plyModel->buildArrays();

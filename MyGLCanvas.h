@@ -73,6 +73,7 @@ private:
 
     struct Planet {
         ply* plyModel;
+        std::string texturePath;
         float size;
         glm::mat4 modelMatrix;
         glm::vec3 position; // world space
