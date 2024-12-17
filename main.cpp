@@ -130,25 +130,25 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 	begin();
 	// OpenGL window
 
-	canvas = new MyGLCanvas(10, 10, w() - 320, h() - 20);
+	canvas = new MyGLCanvas(10, 10, w() - 160, h() - 20);
 
-	Fl_Pack* pack = new Fl_Pack(w() - 310, 30, 150, h(), "");
+	Fl_Pack* pack = new Fl_Pack(w() - 160, 30, 150, h(), "");
 	pack->box(FL_DOWN_FRAME);
 	pack->type(Fl_Pack::VERTICAL);
 	pack->spacing(30);
 	pack->begin();
 
-	Fl_Pack* envpack = new Fl_Pack(w() - 100, 30, 100, h(), "Environment");
-	envpack->box(FL_DOWN_FRAME);
-	envpack->labelfont(1);
-	envpack->type(Fl_Pack::VERTICAL);
-	envpack->spacing(0);
-	envpack->begin();
+	// Fl_Pack* envpack = new Fl_Pack(w() - 100, 30, 100, h(), "Environment");
+	// envpack->box(FL_DOWN_FRAME);
+	// envpack->labelfont(1);
+	// envpack->type(Fl_Pack::VERTICAL);
+	// envpack->spacing(0);
+	// envpack->begin();
 
-	Fl_Box* texTextbox = new Fl_Box(0, 0, pack->w() - 20, 20, "Sphere Map");
-	openFileButton = new Fl_Button(0, 0, pack->w() - 20, 20, "Load PPM");
-	openFileButton->callback(loadEnvFileCB, (void*)this);
-	envpack->end();
+	// Fl_Box* texTextbox = new Fl_Box(0, 0, pack->w() - 20, 20, "Sphere Map");
+	// openFileButton = new Fl_Button(0, 0, pack->w() - 20, 20, "Load PPM");
+	// openFileButton->callback(loadEnvFileCB, (void*)this);
+	// envpack->end();
 
 
 	Fl_Pack* objectpack = new Fl_Pack(w() - 100, 30, 100, h(), "Object Model");
@@ -236,56 +236,56 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 	worldpack->end();
 	pack->end();
 
+	//
+	// Fl_Pack* packCol2 = new Fl_Pack(w() - 155, 30, 150, h(), "");
+	// packCol2->box(FL_DOWN_FRAME);
+	// packCol2->type(Fl_Pack::VERTICAL);
+	// packCol2->spacing(30);
+	// packCol2->begin();
+	//
+	// Fl_Pack* packObj = new Fl_Pack(w() - 100, 30, 100, h(), "Object");
+	// packObj->box(FL_DOWN_FRAME);
+	// packObj->labelfont(1);
+	// packObj->type(Fl_Pack::VERTICAL);
+	// packObj->spacing(0);
+	// packObj->begin();
 
-	Fl_Pack* packCol2 = new Fl_Pack(w() - 155, 30, 150, h(), "");
-	packCol2->box(FL_DOWN_FRAME);
-	packCol2->type(Fl_Pack::VERTICAL);
-	packCol2->spacing(30);
-	packCol2->begin();
-
-	Fl_Pack* packObj = new Fl_Pack(w() - 100, 30, 100, h(), "Object");
-	packObj->box(FL_DOWN_FRAME);
-	packObj->labelfont(1);
-	packObj->type(Fl_Pack::VERTICAL);
-	packObj->spacing(0);
-	packObj->begin();
-
-	Fl_Box* plyTextbox = new Fl_Box(0, 0, pack->w() - 20, 20, "Object File");
-	openFileButton = new Fl_Button(0, 0, pack->w() - 20, 20, "Load PLY");
-	openFileButton->callback(loadFileCB, (void*)this);
-
-	Fl_Box* textureTextbox = new Fl_Box(0, 0, pack->w() - 20, 20, "Texture File");
-	openFileButton = new Fl_Button(0, 0, pack->w() - 20, 20, "Load Texture");
-	openFileButton->callback(loadTextureFileCB, (void*)this);
-
-
-	Fl_Box* lightTextbox = new Fl_Box(0, 0, pack->w() - 20, 20, "Texture Blend");
-	lightSlider = new Fl_Value_Slider(0, 0, pack->w() - 20, 20, "");
-	lightSlider->align(FL_ALIGN_TOP);
-	lightSlider->type(FL_HOR_SLIDER);
-	lightSlider->bounds(0, 1);
-	lightSlider->step(0.01);
-	lightSlider->value(canvas->textureBlend);
-	lightSlider->callback(floatCB, (void*)(&(canvas->textureBlend)));
-
-	useNormalMapButton = new Fl_Check_Button(0, 100, pack->w() - 20, 20, "Diffuse Shading");
-	useNormalMapButton->callback(intCB, (void*)(&(canvas->useDiffuse)));
-	useNormalMapButton->value(canvas->useDiffuse);
-	packObj->end();
+	// Fl_Box* plyTextbox = new Fl_Box(0, 0, pack->w() - 20, 20, "Object File");
+	// openFileButton = new Fl_Button(0, 0, pack->w() - 20, 20, "Load PLY");
+	// openFileButton->callback(loadFileCB, (void*)this);
+	//
+	// Fl_Box* textureTextbox = new Fl_Box(0, 0, pack->w() - 20, 20, "Texture File");
+	// openFileButton = new Fl_Button(0, 0, pack->w() - 20, 20, "Load Texture");
+	// openFileButton->callback(loadTextureFileCB, (void*)this);
+	//
+	//
+	// Fl_Box* lightTextbox = new Fl_Box(0, 0, pack->w() - 20, 20, "Texture Blend");
+	// lightSlider = new Fl_Value_Slider(0, 0, pack->w() - 20, 20, "");
+	// lightSlider->align(FL_ALIGN_TOP);
+	// lightSlider->type(FL_HOR_SLIDER);
+	// lightSlider->bounds(0, 1);
+	// lightSlider->step(0.01);
+	// lightSlider->value(canvas->textureBlend);
+	// lightSlider->callback(floatCB, (void*)(&(canvas->textureBlend)));
+	//
+	// useNormalMapButton = new Fl_Check_Button(0, 100, pack->w() - 20, 20, "Diffuse Shading");
+	// useNormalMapButton->callback(intCB, (void*)(&(canvas->useDiffuse)));
+	// useNormalMapButton->value(canvas->useDiffuse);
+	// packObj->end();
 
 
-	Fl_Pack* packShaders = new Fl_Pack(w() - 100, 30, 100, h(), "Shader");
-	packShaders->box(FL_DOWN_FRAME);
-	packShaders->labelfont(1);
-	packShaders->type(Fl_Pack::VERTICAL);
-	packShaders->spacing(0);
-	packShaders->begin();
-
-	reloadButton = new Fl_Button(0, 0, pack->w() - 20, 20, "Reload");
-	reloadButton->callback(reloadCB, (void*)this);
-
-	packShaders->end();
-	packCol2->end();
+	// Fl_Pack* packShaders = new Fl_Pack(w() - 100, 30, 100, h(), "Shader");
+	// packShaders->box(FL_DOWN_FRAME);
+	// packShaders->labelfont(1);
+	// packShaders->type(Fl_Pack::VERTICAL);
+	// packShaders->spacing(0);
+	// packShaders->begin();
+	//
+	// reloadButton = new Fl_Button(0, 0, pack->w() - 20, 20, "Reload");
+	// reloadButton->callback(reloadCB, (void*)this);
+	//
+	// packShaders->end();
+	// packCol2->end();
 
 	end();
 }
