@@ -56,6 +56,7 @@ private:
 
     void createPlane(unsigned int programID);
     void createIcosphereVAO(int recursionLevel);
+    void drawWarp(glm::mat4 modelMatrix, glm::mat4 viewMatrix, float myTime); 
     unsigned int planeVAO;
     unsigned int planevertices;
     unsigned int icosphereVAO;
@@ -71,6 +72,8 @@ private:
     ply* myEnvironmentPLY;
 
     std::vector<ply *> planets; 
+
+    ply* myWarpPLY;
 
     // saving the PLY and PLL path for each planet
     std::vector<string> planetPLYFilenames;

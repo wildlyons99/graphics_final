@@ -56,11 +56,11 @@ ppm::ppm(std::string _fileName){
 		  // Read in the magic number
 		  if (iteration == 0) {
 			  magicNumber = delimeter_pointer;
-			  std::cout << "Magic Number: " << magicNumber << std::endl;
-              for (char c : magicNumber) {
-                    std::cout << (int)c << " ";
-                }
-                std::cout << std::endl;
+			//   std::cout << "Magic Number: " << magicNumber << std::endl;
+            //   for (char c : magicNumber) {
+            //         std::cout << (int)c << " ";
+            //     }
+            //     std::cout << std::endl;
         
               magicNumber.erase(std::remove(magicNumber.begin(), magicNumber.end(), '\r'), magicNumber.end());
 			  if (magicNumber.compare("P3") != 0) {
@@ -71,10 +71,10 @@ ppm::ppm(std::string _fileName){
 		  // Read in dimensions
 		  else if (iteration == 1) {
 			  width = atoi(delimeter_pointer);
-			  std::cout << "width: " << width << " ";
+			//   std::cout << "width: " << width << " ";
 			  delimeter_pointer = strtok(NULL, " ");
 			  height = atoi(delimeter_pointer);
-			  std::cout << "height: " << height << std::endl;
+			//   std::cout << "height: " << height << std::endl;
 			  // Allocate memory for the color array
 			  if (width > 0 && height > 0) {
 				  color = new char[width*height * 3];
@@ -89,7 +89,7 @@ ppm::ppm(std::string _fileName){
 			  }
 		  }
 		  else if (iteration == 2) {
-			  std::cout << "color range: 0-" << delimeter_pointer << std::endl;
+			//   std::cout << "color range: 0-" << delimeter_pointer << std::endl;
 
 			  int num = width * height * 3;
 			  for (int i = 0; i < num; i++) {

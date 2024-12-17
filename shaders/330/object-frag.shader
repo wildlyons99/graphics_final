@@ -56,8 +56,6 @@ void main() {
     
     vec4 textureColor = textureColorAt(pos, objectTexture);
 
-                
-    
 
     //vec4 textureColor = texture(objectTexture, sharedTexCoord);
 
