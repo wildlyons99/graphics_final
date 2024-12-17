@@ -71,7 +71,7 @@ private:
 	ply* myObjectPLY;
     ply* myEnvironmentPLY;
 
-    std::vector<ply *> planets; 
+    std::vector<ply *> planetPlys; 
     std::vector<glm::mat4> planetMatrices; 
     std::vector<bool> planetOrbitPaused;
     std::vector<bool> planetRecentlyDragged;
@@ -79,17 +79,17 @@ private:
     std::vector<glm::vec3> planetDirChange;
     std::vector<float> planetSize;
 
-    // struct {
-    //     ply plyModel;
-    //     float size;
-    //     glm::mat4 modelMatrix;
-    //     glm::vec3 position; // world space
-    //     glm::vec3 orbitDirChange;
-    //     bool orbitPaused;
-    //     bool recentlyDragged;
-    // } planet;
+    struct Planet {
+        // ply plyModel;
+        float size;
+        glm::mat4 modelMatrix;
+        glm::vec3 position; // world space
+        glm::vec3 orbitDirChange;
+        bool orbitPaused;
+        bool recentlyDragged;
+    };
 
-    // std::vector<planet *> planets;
+    std::vector<Planet> planets;
 
     // saving the PLY and PLL path for each planet
     std::vector<string> planetPLYFilenames;
